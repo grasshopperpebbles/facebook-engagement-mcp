@@ -5,7 +5,7 @@ upstream in gpp-mcp, followed by `npm run extract`.
 
 | | |
 |---|---|
-| Source | `/Users/lesliegreen/projects/gpp-mcp` |
+| Source | `grasshopperpebbles/gpp-mcp` |
 | Commit | `b03bdc7535e3c792436a908dca6b8aa94329b012` |
 | Extracted | 2026-09-03 |
 

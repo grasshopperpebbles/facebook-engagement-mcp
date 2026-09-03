@@ -11,7 +11,7 @@
  */
 import { execFileSync } from "node:child_process"
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { basename, dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
@@ -62,6 +62,23 @@ if (dirty) {
       dirty +
       "\nCommit them first — a vendored copy must correspond to a commit.",
   )
+}
+
+/**
+ * Identify the source by remote URL, never by local path — this file is
+ * committed, and an absolute path leaks the extracting machine's layout.
+ */
+let origin
+try {
+  origin = normalizeOrigin(git("remote", "get-url", "origin"))
+} catch {
+  origin = basename(SOURCE)
+}
+
+/** Reduce a git remote URL (SSH alias, ssh://, git@host:, or https://) to owner/repo. */
+function normalizeOrigin(url) {
+  const match = url.replace(/\.git$/, "").match(/[:/]([^/:]+\/[^/:]+)$/)
+  return match ? match[1] : url
 }
 
 rmSync(VENDOR_SRC, { recursive: true, force: true })
@@ -118,7 +135,7 @@ upstream in gpp-mcp, followed by \`npm run extract\`.
 
 | | |
 |---|---|
-| Source | \`${SOURCE}\` |
+| Source | \`${origin}\` |
 | Commit | \`${sha}\` |
 | Extracted | ${new Date().toISOString().slice(0, 10)} |
 
