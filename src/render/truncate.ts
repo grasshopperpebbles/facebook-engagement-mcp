@@ -99,8 +99,8 @@ export function commentTextCost(comment: Comment): number {
  * Comment text and author names are written by the public and this server also
  * holds tools that publish and hide. Structural separation does not stop a
  * model from being persuaded by content it legitimately reads — that
- * non-defence is documented in docs/limitations.md — but it stops the text
- * being mistaken for structure.
+ * non-defence is documented in the README — but it stops the text being
+ * mistaken for structure.
  */
 export function renderComment(comment: Comment): RenderedComment {
   const { message, author, ...rest } = comment

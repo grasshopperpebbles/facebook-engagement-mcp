@@ -12,7 +12,7 @@ export { createServer, type ServerOptions } from "./server.js"
 async function main(): Promise<void> {
   const accessToken = process.env.META_ACCESS_TOKEN
   if (!accessToken) {
-    console.error("META_ACCESS_TOKEN is required. See docs/scopes.md for the scopes it needs.")
+    console.error("META_ACCESS_TOKEN is required. See the README for the scopes it needs.")
     process.exit(1)
   }
 
