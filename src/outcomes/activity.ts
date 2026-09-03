@@ -11,7 +11,8 @@ import {
   type UntrustedText,
   untrustedText,
 } from "../render/truncate.js"
-import type { Comment, Page, PagesClient } from "../vendor/meta-client/index.js"
+import type { Comment, MetaClient, Page, PagesClient } from "../vendor/meta-client/index.js"
+import { resolveAdPosts } from "./ad-posts.js"
 import { explainGraphError } from "./errors.js"
 import { type Counts, countThreads, type Group, type GroupBy, groupThreads } from "./grouping.js"
 import { assembleThreads, type Thread, type ThreadPost, threadPost } from "./threads.js"
@@ -28,6 +29,8 @@ export type Target =
   | { kind: "page"; id: string }
   | { kind: "post"; id: string }
   | { kind: "comment"; id: string }
+  | { kind: "ad"; id: string }
+  | { kind: "campaign"; id: string }
 
 /**
  * `ThreadPost` with its free text moved behind the same untrusted marker as
@@ -78,6 +81,8 @@ export interface RunOptions {
   page?: string | undefined
   post?: string | undefined
   comment?: string | undefined
+  ad?: string | undefined
+  campaign?: string | undefined
   filter?: Filter | undefined
   groupBy?: GroupBy | undefined
   since?: string | undefined
@@ -89,6 +94,7 @@ export interface Deps {
   client: PagesClient
   tokens: TokenProvider
   logger?: Logger
+  meta?: MetaClient
 }
 
 const DEFAULT_SINCE_DAYS = 30
@@ -120,13 +126,17 @@ function isoDaysAgo(days: number, today: Date): string {
 }
 
 function resolveTarget(options: RunOptions): Target | { error: string } {
-  const given = (["page", "post", "comment"] as const).filter((k) => options[k] !== undefined)
+  const given = (["page", "post", "comment", "ad", "campaign"] as const).filter(
+    (k) => options[k] !== undefined,
+  )
   if (given.length > 1) {
     return { error: `Give one target only; received ${given.join(" and ")}.` }
   }
   if (options.page !== undefined) return { kind: "page", id: options.page }
   if (options.post !== undefined) return { kind: "post", id: options.post }
   if (options.comment !== undefined) return { kind: "comment", id: options.comment }
+  if (options.ad !== undefined) return { kind: "ad", id: options.ad }
+  if (options.campaign !== undefined) return { kind: "campaign", id: options.campaign }
   return { kind: "pages" }
 }
 
@@ -200,13 +210,26 @@ const abbreviateThread = (thread: TriagedThread): RenderedThread => ({
   abbreviated: true,
 })
 
-/** The Page whose access token should read this target's comments. */
-function pageIdForTarget(target: Target): string | undefined {
+/**
+ * The Page whose access token should read this target's comments.
+ *
+ * `ad` and `campaign` targets are resolved to their posts *before* this runs,
+ * because a resolved `effective_object_story_id` is exactly the
+ * `{page-id}_{post-id}` composite the derivation understands. Deriving it
+ * afterwards, as an earlier version did, left ad and campaign reads on the
+ * user token — which Graph answers with empty `data`, not an error.
+ */
+function pageIdForTarget(target: Target, posts: ThreadPost[]): string | undefined {
   switch (target.kind) {
     case "page":
       return target.id
     case "post":
       return pageIdFromPostId(target.id)
+    case "ad":
+    case "campaign": {
+      const first = posts[0]
+      return first === undefined ? undefined : pageIdFromPostId(first.id)
+    }
     default:
       return undefined
   }
@@ -246,6 +269,27 @@ export async function runCommentActivity(
   let posts: ThreadPost[] = []
   let threads: Thread[] = []
 
+  // Ad and campaign targets resolve to their Page posts first, before a token
+  // is chosen: the resolved post ids are the only thing that names the Page,
+  // and comments read with a user token come back as empty `data` rather than
+  // an error — a silent zero on the exact capability this tool headlines.
+  // This runs on the Marketing client, which is user-token scoped by design.
+  if (target.kind === "ad" || target.kind === "campaign") {
+    if (deps.meta === undefined) {
+      return {
+        error: "Ad and campaign targets need Marketing API access, which is not configured.",
+      }
+    }
+    try {
+      const resolved = await resolveAdPosts(deps.meta, { [target.kind]: target.id })
+      notes.push(...resolved.notes)
+      if (resolved.notes.length > 0) partial = true
+      posts = resolved.postIds.map((id) => ({ id }))
+    } catch (cause) {
+      return { error: explainGraphError(cause, { operation: "read" }) }
+    }
+  }
+
   // Comment reads need a Page token: a user token returns empty data, which
   // reads as "no comments" rather than "wrong token" — the whole reason the
   // Page-token exchange exists. A page target names its Page explicitly; every
@@ -267,7 +311,7 @@ export async function runCommentActivity(
       return { error: explainGraphError(cause, { operation: "read", pageId: target.id }) }
     }
   } else {
-    const derived = pageIdForTarget(target)
+    const derived = pageIdForTarget(target, posts)
     let derivedToken: string | undefined
     if (derived !== undefined) {
       try {
@@ -294,6 +338,26 @@ export async function runCommentActivity(
     }
   }
   const client = deps.client.withToken(accessToken)
+
+  // A campaign can run ads on several Pages, and one request carries one Page
+  // token. This is a real limitation, not a degradation to paper over.
+  if (pageId !== undefined && (target.kind === "ad" || target.kind === "campaign")) {
+    const spanned = new Set(
+      posts
+        .map((post) => pageIdFromPostId(post.id))
+        .filter((id): id is string => id !== undefined && id !== pageId),
+    )
+    if (spanned.size > 0) {
+      partial = true
+      notes.push(
+        `This ${target.kind} runs on ${spanned.size + 1} Pages, but comments can be read with ` +
+          `only one Page access token per call. Only posts belonging to Page ${pageId} were read ` +
+          "with a Page token; posts on the other Pages return no comments rather than an error, " +
+          "so an empty result for them is not evidence there are none. Query those Pages " +
+          "separately.",
+      )
+    }
+  }
 
   try {
     if (target.kind === "page") {

@@ -9,7 +9,7 @@ import {
 } from "./tools/comment-activity.js"
 import * as moderate from "./tools/moderate-comment.js"
 import * as respond from "./tools/respond-to-comment.js"
-import { createPagesClient, type FetchImpl } from "./vendor/meta-client/index.js"
+import { createMetaClient, createPagesClient, type FetchImpl } from "./vendor/meta-client/index.js"
 
 /**
  * Run a tool and shape the outcome for MCP.
@@ -92,6 +92,15 @@ export function createServer(options: ServerOptions): McpServer {
     ...(fetchImpl && { fetchImpl }),
   })
 
+  // Resolves an ad or campaign to the Page post behind it. That is the only
+  // route to comments on an ad: ads run on unpublished posts, and no
+  // Page-level edge returns those — verified 2026-09-03, contrary to Meta's
+  // documentation. A `page` target sweeps published posts only.
+  const meta = createMetaClient({
+    accessToken: options.accessToken,
+    ...(fetchImpl && { fetchImpl }),
+  })
+
   server.registerTool(
     ACTIVITY_TOOL,
     {
@@ -108,7 +117,7 @@ export function createServer(options: ServerOptions): McpServer {
     async (args) =>
       asToolResult(() =>
         runCommentActivity(
-          { client, tokens },
+          { client, tokens, meta },
           { ...args, ...(options.today && { today: options.today }) },
         ),
       ),

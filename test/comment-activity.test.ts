@@ -105,6 +105,23 @@ const datedFetch = () =>
     ],
   })
 
+/** Only the MetaClient members an ad/campaign resolution touches. */
+const metaStub = (postIds: string[]) => {
+  let call = 0
+  return {
+    ads: {
+      list: vi.fn(async () => ({
+        items: postIds.map((_, i) => ({ id: `a${i}` })),
+        truncated: false,
+      })),
+    },
+    adSets: { list: vi.fn(async () => ({ items: [{ id: "as1" }], truncated: false })) },
+    creatives: {
+      forAd: vi.fn(async () => ({ effective_object_story_id: postIds[call++ % postIds.length] })),
+    },
+  }
+}
+
 /** Every character of untrusted free text anywhere in a response. */
 function renderedTextChars(value: unknown): number {
   if (Array.isArray(value)) return value.reduce<number>((sum, v) => sum + renderedTextChars(v), 0)
@@ -363,6 +380,66 @@ describe("runCommentActivity", () => {
       (t) => t.comment.id,
     )
     expect(ordered).toEqual(["pg1_p1_c2", "pg1_p1_c1"])
+  })
+
+  it("reads an ad target's comments with a Page token, not the user token", async () => {
+    // Meta answers /comments with empty `data` for a user token, so this
+    // returning zero in production is the failure mode, not an error.
+    const fetchImpl = fixtureFetch()
+    const result = await runCommentActivity(
+      { ...deps(fetchImpl), meta: metaStub(["pg1_p2"]) as never },
+      { ad: "a1", filter: "all" },
+    )
+
+    expect(result).not.toHaveProperty("error")
+    const commentsCall = fetchImpl.mock.calls.find(([url]) =>
+      (url as string).includes("/pg1_p2/comments"),
+    )
+    expect(commentsCall).toBeDefined()
+    const headers = (commentsCall as [string, RequestInit])[1].headers as Record<string, string>
+    expect(headers.authorization).toBe("Bearer PAGE-TOKEN-FIXTURE")
+
+    expect(JSON.stringify(result)).toContain("pg1_p2_c1")
+    expect((result as { notes: string[] }).notes.join(" ")).not.toContain("user access token")
+  })
+
+  it("reads a campaign target's comments with a Page token too", async () => {
+    const fetchImpl = fixtureFetch()
+    const result = await runCommentActivity(
+      { ...deps(fetchImpl), meta: metaStub(["pg1_p2"]) as never },
+      { campaign: "cmp1", filter: "all" },
+    )
+
+    expect(result).not.toHaveProperty("error")
+    const commentsCall = fetchImpl.mock.calls.find(([url]) =>
+      (url as string).includes("/pg1_p2/comments"),
+    )
+    const headers = (commentsCall as [string, RequestInit])[1].headers as Record<string, string>
+    expect(headers.authorization).toBe("Bearer PAGE-TOKEN-FIXTURE")
+    expect((result as { totals: { threads: number } }).totals.threads).toBe(2)
+  })
+
+  it("says so when a campaign spans more Pages than one token can read", async () => {
+    const result = await runCommentActivity(
+      { ...deps(), meta: metaStub(["pg1_p2", "pg9_p1"]) as never },
+      { campaign: "cmp1", filter: "all" },
+    )
+
+    const activity = result as { partial: boolean; notes: string[] }
+    expect(activity.partial).toBe(true)
+    expect(activity.notes.join(" ")).toMatch(/only one Page access token per call/i)
+  })
+
+  it("explains an ad target when the Marketing client is not configured", async () => {
+    const result = await runCommentActivity(deps(), { ad: "a1" })
+
+    expect((result as { error: string }).error).toMatch(/Marketing API access/i)
+  })
+
+  it("explains a campaign target when the Marketing client is not configured", async () => {
+    const result = await runCommentActivity(deps(), { campaign: "cmp1" })
+
+    expect((result as { error: string }).error).toMatch(/Marketing API access/i)
   })
 
   it("hoists each post body to the response instead of repeating it per thread", async () => {
