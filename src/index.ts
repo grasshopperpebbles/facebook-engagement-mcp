@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { realpathSync } from "node:fs"
 import { pathToFileURL } from "node:url"
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { createServer } from "./server.js"
@@ -26,8 +27,23 @@ async function main(): Promise<void> {
   await createServer({ accessToken, enableWrites }).connect(new StdioServerTransport())
 }
 
+/**
+ * Only start a stdio server when this module is the process entry point, so
+ * importing `createServer` from it does not seize stdin and stdout.
+ *
+ * Two details make the comparison exact rather than approximate. Comparing
+ * basenames instead would be wrong: any `index.js` anywhere on disk would
+ * match, so an unrelated entry point that happened to share the name would
+ * start a server nobody asked for. And `process.argv[1]` has to be resolved
+ * through `realpathSync` first, because npm installs a `bin` as a symlink
+ * (`node_modules/.bin/facebook-engagement-mcp` -> the real `dist/index.js`).
+ * Node reports the symlink path in `argv[1]` and the resolved realpath in
+ * `import.meta.url`, so an unresolved comparison is false for every launch a
+ * client actually makes, and the process exits 0 having served nothing.
+ */
 const invokedDirectly =
-  process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href
 
 if (invokedDirectly) {
   main().catch((error: unknown) => {

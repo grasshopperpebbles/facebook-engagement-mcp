@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { Client } from "@modelcontextprotocol/sdk/client/index.js"
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js"
 import { describe, expect, it } from "vitest"
@@ -21,6 +22,16 @@ describe("server", () => {
 
   it("names itself for this server, not the marketing one", () => {
     expect(SERVER_NAME).toBe("facebook-engagement-mcp")
+  })
+
+  it("advertises the version this package actually is", () => {
+    // The handshake version drifted from package.json once already, silently:
+    // it kept the 0.0.0 of the monorepo this code was extracted from.
+    const manifest = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { version: string }
+
+    expect(SERVER_VERSION).toBe(manifest.version)
   })
 })
 
