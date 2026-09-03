@@ -1,0 +1,57 @@
+{
+  "name": "facebook-engagement-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Facebook Page comment triage, including comments on unpublished ad-backed posts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": {
+    "facebook-engagement-mcp": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "facebook",
+    "facebook-api",
+    "graph-api",
+    "facebook-comments",
+    "facebook-ads",
+    "page-comments",
+    "meta",
+    "moderation"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "extract": "node scripts/extract.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.10",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.16"
+  }
+}
