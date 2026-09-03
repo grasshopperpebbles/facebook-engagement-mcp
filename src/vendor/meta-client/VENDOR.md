@@ -6,10 +6,12 @@ upstream in gpp-mcp, followed by `npm run extract`.
 | | |
 |---|---|
 | Source | `grasshopperpebbles/gpp-mcp` |
-| Commit | `179c4e1bba888df3543d12d54e6dc6a1c23ff885` |
+| Commit | `edcf90ef6a07b46130ad42ca241164499a32f322` |
 | Extracted | 2026-09-03 |
 
-Copied: constants.ts, http.ts, errors.ts, pages/ and 5 test files.
+Copied: constants.ts, http.ts, errors.ts, types.ts, index.ts, pages/ and 7 test files.
 
-Not copied: `src/index.ts` and `src/types.ts` (Marketing API), and the two
-test files covering it. The barrel here is written by the script instead.
+Everything under `src/` is copied, including the Marketing API surface, which
+this package uses to resolve an ad to the Page post behind it. Nothing here is
+hand-written — earlier versions of this script generated the barrel; it no
+longer does.

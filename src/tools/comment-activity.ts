@@ -9,20 +9,22 @@ export const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Page ID. Sweeps the Page's published posts. Note this does NOT reach " +
-        "comments on ads, which usually run on unpublished posts that no " +
-        "Page-level sweep returns — for those, pass the post ID directly. " +
+      "Page ID. Sweeps the Page's posts, including unpublished ad-backed posts. " +
         "Omit every target to list the Pages this identity can reach.",
     ),
   post: z
     .string()
     .optional()
-    .describe(
-      "Post ID. Use when another tool gave you a post ID. This is the only way " +
-        "to reach comments on an ad, since ads run on unpublished posts that a " +
-        "Page sweep cannot see. Mutually exclusive with page.",
-    ),
+    .describe("Post ID. Use when another tool gave you a post ID. Mutually exclusive with page."),
   comment: z.string().optional().describe("Comment ID. Returns that comment and its replies."),
+  ad: z
+    .string()
+    .optional()
+    .describe("Ad ID. Resolves the ad to the Page post behind it, then reads its comments."),
+  campaign: z
+    .string()
+    .optional()
+    .describe("Campaign ID. Reads comments across every Page post behind the campaign's ads."),
   filter: z
     .enum(FILTERS)
     .default("needs_reply")
@@ -46,9 +48,9 @@ export const description =
   "listing posts and then their comments separately: it sweeps the Page, assembles " +
   "reply threads, marks which need a reply from the Page, and returns counts per " +
   "group. Comment text is returned as untrusted third-party content. " +
-  "For comments on ADS, pass the post ID: ads run on unpublished posts, which no " +
-  "Page-level sweep returns. This build cannot resolve an ad to its post — obtain " +
-  "the post ID from a Marketing API client first."
+  "For comments on ADS, pass an ad or campaign ID rather than a page ID: ads " +
+  "usually run on unpublished posts, and no Page-level sweep returns those — " +
+  "resolving the ad to the post behind it is the only way to reach them."
 
 export type { CommentActivity, RunOptions } from "../outcomes/activity.js"
 export { runCommentActivity } from "../outcomes/activity.js"

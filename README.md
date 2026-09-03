@@ -8,19 +8,20 @@ and returns that instead of a raw comment array for a model to sort through.
 Replying and hiding are available behind an explicit flag. Deleting is not
 offered at all.
 
-> **On ad comments — read this before choosing this server for them.**
-> An earlier version of this README claimed that reading `/{page-id}/feed`
-> let it see comments on ads, where servers reading the published feed
-> cannot. That was based on Meta's documentation and is **false**: tested on
-> 2026-09-03, an unpublished post confirmed to exist was returned by none of
-> `/feed`, `/posts` or `/published_posts`.
+> **On ad comments — how this actually works.**
+> Ads run on **unpublished** posts. Meta's documentation says
+> `/{page-id}/feed` returns those where `/posts` does not; tested on
+> 2026-09-03 it does not, and no Page-level edge does. So a `page` target
+> sweeps published posts and silently misses every ad.
 >
-> Ads do run on unpublished posts, and their comments **are** readable — but
-> only by addressing the post directly. That means you need the post ID, and
-> getting one means resolving the ad through the Marketing API, which this
-> package does not do. Hand it a post ID and it works. Expect it to find ad
-> comments from a Page ID and it will silently return only your published
-> posts.
+> Comments on an unpublished post *are* readable — by addressing the post
+> directly. So pass an **`ad` or `campaign` ID**: this server resolves it
+> through the Marketing API to the creative's `effective_object_story_id`,
+> then reads the comments on that post. That is the only route, and it is
+> why this package carries a Marketing client it otherwise would not need.
+>
+> Passing a `page` ID and expecting ad comments will quietly give you
+> published posts only.
 
 Fuller detail under [Known limitations](#known-limitations).
 
@@ -353,6 +354,11 @@ than `ok: true`, because nothing actually changed.
 | `respond_to_comment` | `pages_manage_engagement` | Page token, and the token's Page role must include `MODERATE` |
 | `moderate_comment` | `pages_manage_engagement` | Page token, and the token's Page role must include `MODERATE` |
 | Listing which Pages this identity can reach (no target given) | `pages_show_list` | User token |
+| `comment_activity` with an `ad` or `campaign` target | `ads_read`, plus the reads above | User token to resolve the ad; Page token to read the comments |
+
+`ads_read` is only needed for `ad` and `campaign` targets. If you never pass
+one, omit it — a token that cannot read your ad account is a smaller thing to
+hand out. It is also a separate App Review item.
 
 `META_ACCESS_TOKEN` is a **user** token. The server exchanges it for a
 per-Page token via `GET /me/accounts` and uses that Page token for every
@@ -373,14 +379,13 @@ the error in that case names the missing role rather than the permission.
 Stated plainly, because a tool that hides these would be more dangerous than
 one that doesn't exist:
 
-1. **A Page sweep does not reach ad comments.** Ads run on unpublished posts,
-   and no Page-level edge returns those — verified on 2026-09-03 against a real
-   unpublished post confirmed to exist. A `page` target sweeps published posts
-   and omits ad-backed ones silently, with no error, because from its point of
-   view they do not exist. Comments on such a post are readable via a `post`
-   target if you have the ID. Obtaining that ID requires resolving the ad to
-   its creative's `effective_object_story_id`, which needs a Marketing API
-   client this package deliberately does not vendor.
+1. **A `page` target does not reach ad comments — use `ad` or `campaign`.**
+   Ads run on unpublished posts, and no Page-level edge returns those, verified
+   on 2026-09-03 against a real unpublished post confirmed to exist. A `page`
+   sweep omits them silently, with no error, because from its point of view
+   they do not exist. Pass an `ad` or `campaign` ID instead and the server
+   resolves it to the post behind it first. Note this needs `ads_read` in
+   addition to the Page permissions.
 2. **Partly verified against a live Page, on 2026-09-03.** A development-mode
    app read this client's own field selections back from a real Page. Response
    *shapes* matched, bar two gaps now fixed: comments carry `permalink_url`,

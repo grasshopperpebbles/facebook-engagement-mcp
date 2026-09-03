@@ -22,8 +22,17 @@ const CLIENT = join(SOURCE, "packages/meta-client")
 const VENDOR_SRC = join(REPO, "src/vendor/meta-client")
 const VENDOR_TEST = join(REPO, "test/vendor")
 
-/** Copied verbatim. Relative imports inside these resolve unchanged. */
-const SRC_FILES = ["constants.ts", "http.ts", "errors.ts"]
+/**
+ * Copied verbatim. Relative imports inside these resolve unchanged.
+ *
+ * `index.ts` is the upstream barrel and `types.ts` the Marketing structural
+ * types. Both are copied whole rather than trimmed: this package needs the
+ * Marketing surface to resolve an ad to the Page post behind it, which is the
+ * only route to ad comments. Some exports go unused, as with the Marketing
+ * field lists already carried in `constants.ts` — the script stays a copier
+ * rather than a surgeon.
+ */
+const SRC_FILES = ["constants.ts", "http.ts", "errors.ts", "types.ts", "index.ts"]
 const SRC_DIRS = ["pages"]
 
 /**
@@ -36,6 +45,8 @@ const TEST_FILES = [
   "retry.test.ts",
   "pages-client.test.ts",
   "pages-normalize.test.ts",
+  "client.test.ts",
+  "regressions.test.ts",
 ]
 
 function fail(message) {
@@ -97,28 +108,6 @@ for (const dir of SRC_DIRS) {
   cpSync(join(CLIENT, "src", dir), join(VENDOR_SRC, dir), { recursive: true })
 }
 
-/**
- * A barrel, written rather than copied: the upstream src/index.ts also exports
- * the Marketing surface, which is not vendored.
- */
-writeFileSync(
-  join(VENDOR_SRC, "index.ts"),
-  GENERATED +
-    `
-export * from "./constants.js"
-export * from "./errors.js"
-export { createTransport } from "./http.js"
-export type { FetchImpl, PageOptions, PagedResult, TokenResolver, Transport } from "./http.js"
-export {
-  createPagesClient,
-  type ListOptions as PageListOptions,
-  type PagesClient,
-  type PostListOptions,
-} from "./pages/index.js"
-export type { Comment, Page, PageCredential, PagePost } from "./pages/types.js"
-`.trimStart(),
-)
-
 // Tests import ../src/x.js upstream; here the client sits two levels deeper.
 for (const file of TEST_FILES) {
   const body = readFileSync(join(CLIENT, "test", file), "utf8")
@@ -141,8 +130,10 @@ upstream in gpp-mcp, followed by \`npm run extract\`.
 
 Copied: ${SRC_FILES.join(", ")}, ${SRC_DIRS.join(", ")}/ and ${TEST_FILES.length} test files.
 
-Not copied: \`src/index.ts\` and \`src/types.ts\` (Marketing API), and the two
-test files covering it. The barrel here is written by the script instead.
+Everything under \`src/\` is copied, including the Marketing API surface, which
+this package uses to resolve an ad to the Page post behind it. Nothing here is
+hand-written — earlier versions of this script generated the barrel; it no
+longer does.
 `,
 )
 
