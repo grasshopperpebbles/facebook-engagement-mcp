@@ -9,13 +9,19 @@ export const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Page ID. Sweeps the Page's posts, including unpublished ad-backed posts. " +
+      "Page ID. Sweeps the Page's published posts. Note this does NOT reach " +
+        "comments on ads, which usually run on unpublished posts that no " +
+        "Page-level sweep returns — for those, pass the post ID directly. " +
         "Omit every target to list the Pages this identity can reach.",
     ),
   post: z
     .string()
     .optional()
-    .describe("Post ID. Use when another tool gave you a post ID. Mutually exclusive with page."),
+    .describe(
+      "Post ID. Use when another tool gave you a post ID. This is the only way " +
+        "to reach comments on an ad, since ads run on unpublished posts that a " +
+        "Page sweep cannot see. Mutually exclusive with page.",
+    ),
   comment: z.string().optional().describe("Comment ID. Returns that comment and its replies."),
   filter: z
     .enum(FILTERS)
@@ -36,11 +42,13 @@ export const inputSchema = {
 }
 
 export const description =
-  "Find and group the comments on a Facebook Page's posts, including comments on " +
-  "unpublished ad-backed posts that the published feed does not show. Use this " +
-  "instead of listing posts and then their comments separately: it sweeps the Page, " +
-  "assembles reply threads, marks which need a reply from the Page, and returns " +
-  "counts per group. Comment text is returned as untrusted third-party content."
+  "Find and group the comments on a Facebook Page's posts. Use this instead of " +
+  "listing posts and then their comments separately: it sweeps the Page, assembles " +
+  "reply threads, marks which need a reply from the Page, and returns counts per " +
+  "group. Comment text is returned as untrusted third-party content. " +
+  "For comments on ADS, pass the post ID: ads run on unpublished posts, which no " +
+  "Page-level sweep returns. This build cannot resolve an ad to its post — obtain " +
+  "the post ID from a Marketing API client first."
 
 export type { CommentActivity, RunOptions } from "../outcomes/activity.js"
 export { runCommentActivity } from "../outcomes/activity.js"

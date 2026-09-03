@@ -46,9 +46,22 @@ export interface PagesClient {
 /**
  * Client for Facebook Page engagement: Pages, their posts, and comments.
  *
- * Reads `/{page-id}/feed` rather than `/posts` or `/published_posts` because
- * only `/feed` returns unpublished posts, which are the object type behind ads.
- * Comments on advertising are unreachable through the published edges.
+ * Reads `/{page-id}/feed`. This was chosen because Meta's documentation states
+ * that `/feed` returns unpublished posts where `/posts` and `/published_posts`
+ * do not — unpublished posts being the object type behind ads.
+ *
+ * **That is not what happens.** Verified against a live Page on 2026-09-03: an
+ * unpublished post (`is_published: false`, confirmed by fetching it directly)
+ * was returned by NONE of `/feed`, `/posts` or `/published_posts`, with or
+ * without `is_published=false` or `include_hidden=true`. The two edges returned
+ * byte-identical id lists. `/promotable_posts` does not exist.
+ *
+ * So no Page-level sweep discovers unpublished posts. Their comments ARE
+ * readable — the `/comments` edge on such a post answers normally — but only if
+ * you already have the post id, which in practice means resolving an ad to its
+ * creative's `effective_object_story_id`. `/feed` is kept over `/posts` because
+ * it is a superset in principle (it can include visitor posts), not because it
+ * finds dark posts. It does not.
  */
 export function createPagesClient(options: {
   accessToken: string | TokenResolver

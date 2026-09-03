@@ -42,11 +42,20 @@ Also confirmed live: `can_hide` is returned, and is `true` on a third party's
 comment and `false` on the Page's own — the server's `canHide` is meaningful,
 not decorative.
 
-**Not settled: unpublished, ad-backed posts.** The Page used for validation had
-no dark posts, so `is_published: false` is still an unexercised path against
-live Graph. `feed.json` keeps a synthetic unpublished post because that case is
-the server's reason to exist and must stay covered — but its shape is inferred
-from the published posts beside it, not observed.
+**Settled, and it overturned the design: no Page-level edge returns unpublished
+posts.** One was created on a live Page and confirmed to exist, then found in
+none of `/feed`, `/posts` or `/published_posts`. Its comments edge, addressed
+directly, answers normally.
+
+`feed.json` deliberately keeps a synthetic unpublished post. It no longer
+represents what a `/feed` sweep returns — it never did — but the paths that
+label such a post and carry its `is_published` state onto every thread still
+run whenever a post id is supplied directly. Removing it would drop coverage of
+live behaviour. Its shape is inferred, not observed.
+
+Note this package has no `ad` or `campaign` target, so it cannot obtain such a
+post id on its own. Verification of that route happens upstream in the
+`gpp-mcp` monorepo, which has a Marketing client.
 
 **Not settled: pagination.** Every live response fitted in one page, so
 `paging.next` and the truncation path have still only been exercised against

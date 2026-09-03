@@ -2,12 +2,27 @@
 
 An MCP server for triaging comments on a Facebook Page.
 
-Most Facebook MCP servers read your Page's published feed. Comments on your
-**ads** usually live on unpublished posts, which that feed does not return —
-so those servers cannot see them at all. This one reads `/feed`, and can.
-What that does and does not reach is set out under
-[Known limitations](#known-limitations) — some ad formats produce no Page post
-for anyone to read, and nothing here has been verified against a live Page.
+It triages: given a Page, a post, or a comment, it assembles reply threads,
+works out which still need an answer from the Page, groups them with counts,
+and returns that instead of a raw comment array for a model to sort through.
+Replying and hiding are available behind an explicit flag. Deleting is not
+offered at all.
+
+> **On ad comments — read this before choosing this server for them.**
+> An earlier version of this README claimed that reading `/{page-id}/feed`
+> let it see comments on ads, where servers reading the published feed
+> cannot. That was based on Meta's documentation and is **false**: tested on
+> 2026-09-03, an unpublished post confirmed to exist was returned by none of
+> `/feed`, `/posts` or `/published_posts`.
+>
+> Ads do run on unpublished posts, and their comments **are** readable — but
+> only by addressing the post directly. That means you need the post ID, and
+> getting one means resolving the ad through the Marketing API, which this
+> package does not do. Hand it a post ID and it works. Expect it to find ad
+> comments from a Page ID and it will silently return only your published
+> posts.
+
+Fuller detail under [Known limitations](#known-limitations).
 
 ## What it does
 
@@ -358,16 +373,22 @@ the error in that case names the missing role rather than the permission.
 Stated plainly, because a tool that hides these would be more dangerous than
 one that doesn't exist:
 
-1. **Partly verified against a live Page, on 2026-09-03.** The response
-   *shapes* were checked: a development-mode app read this client's own field
-   selections back from a real Page, and the fixtures were corrected where they
-   differed (comments carry `permalink_url`; list responses carry
-   `paging.cursors`). Fixture *values* remain synthetic. Two paths are still
-   unexercised against live Graph and matter: **unpublished, ad-backed posts**
-   — the capability this server exists for, on a Page that had none — and
-   **pagination**, since every live response fitted one page. See
-   `fixtures/README.md`.
-2. **Graph does return a comment's author — verified, but undocumented.** A
+1. **A Page sweep does not reach ad comments.** Ads run on unpublished posts,
+   and no Page-level edge returns those — verified on 2026-09-03 against a real
+   unpublished post confirmed to exist. A `page` target sweeps published posts
+   and omits ad-backed ones silently, with no error, because from its point of
+   view they do not exist. Comments on such a post are readable via a `post`
+   target if you have the ID. Obtaining that ID requires resolving the ad to
+   its creative's `effective_object_story_id`, which needs a Marketing API
+   client this package deliberately does not vendor.
+2. **Partly verified against a live Page, on 2026-09-03.** A development-mode
+   app read this client's own field selections back from a real Page. Response
+   *shapes* matched, bar two gaps now fixed: comments carry `permalink_url`,
+   and list responses carry `paging.cursors`. Fixture *values* remain
+   synthetic. **Pagination is still unexercised** — every live response fitted
+   a single page, so `paging.next` and the truncation path have only ever run
+   against fixtures. See `fixtures/README.md`.
+3. **Graph does return a comment's author — verified, but undocumented.** A
    third-party comment came back with `from: { name, id }`, so in practice
    `statusBasis` is `"author_identity"` and `needs_reply` answers the real
    question: *has the Page replied to this comment?* The catch is that `from`
@@ -377,7 +398,7 @@ one that doesn't exist:
    `needs_reply` weakens to *has anyone replied at all?* Every response reports
    which basis it used, as `statusBasis`: `"author_identity"` or
    `"reply_count"`. Check it before trusting the answer.
-3. **Some ad formats produce no Page post at all.** Their comments have
+4. **Some ad formats produce no Page post at all.** Their comments have
    nowhere to be read from on the Page side, by this server or any other
    Page-based approach — there is no post id to sweep, reply to, or moderate.
    A `page` sweep reads whatever `/feed` returns; a post that was never
@@ -387,7 +408,7 @@ one that doesn't exist:
    it as a `post` target and Graph cannot find comments there, that failure
    is not swallowed: the response marks itself `partial` and `notes` explains
    which post and why, rather than silently reporting zero comments for it.
-4. **The permission table above was verified against Meta's Graph API
+5. **The permission table above was verified against Meta's Graph API
    documentation, not against a live app.** Every one of these permissions
    also requires Meta App Review before it works on any Page outside your own
    app's development mode; whether Meta approves a given use case is outside
