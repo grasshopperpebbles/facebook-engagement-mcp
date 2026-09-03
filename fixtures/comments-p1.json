@@ -4,12 +4,22 @@
       "id": "pg1_p1_c1",
       "message": "Do you ship to Ireland?",
       "created_time": "2026-08-30T10:00:00+0000",
-      "from": { "id": "u1", "name": "A Customer" },
+      "from": {
+        "id": "u1",
+        "name": "A Customer"
+      },
       "like_count": 0,
       "comment_count": 0,
       "is_hidden": false,
       "can_comment": true,
-      "can_hide": true
+      "can_hide": true,
+      "permalink_url": "https://www.facebook.com/pg1_p1_c1"
     }
-  ]
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIUmxhZAHR",
+      "after": "QVFIUmVuZAHJ"
+    }
+  }
 }

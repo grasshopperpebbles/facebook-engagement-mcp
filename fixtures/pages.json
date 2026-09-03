@@ -1,5 +1,16 @@
 {
   "data": [
-    { "id": "pg1", "name": "Test Shop", "category": "Retail", "tasks": ["MODERATE", "ANALYZE"] }
-  ]
+    {
+      "id": "pg1",
+      "name": "Test Shop",
+      "category": "Retail",
+      "tasks": ["MODERATE", "ANALYZE"]
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIUmxhZAHR",
+      "after": "QVFIUmVuZAHJ"
+    }
+  }
 }

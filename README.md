@@ -358,20 +358,25 @@ the error in that case names the missing role rather than the permission.
 Stated plainly, because a tool that hides these would be more dangerous than
 one that doesn't exist:
 
-1. **Nothing here has been verified against a live Facebook Page.** Every test
-   fixture in this repository is hand-authored from Meta's published Graph API
-   documentation. The test suite proves the code is internally consistent with
-   those fixtures — it does not prove the fixtures match what Meta's API
-   actually returns.
-2. **Whether Graph returns a comment's author is unconfirmed.** When it does,
-   `needs_reply` answers the real question: *has the Page replied to this
-   comment?* When Graph omits the author (`from`) field, the server cannot
-   tell who replied, only that *someone* did, and `needs_reply` degrades to
-   the weaker, different question *has anyone replied at all?* — a false
-   `needs_reply` (Page already replied, in a different reply Graph attributed
-   to no one) is possible under that weaker basis. Every response reports
+1. **Partly verified against a live Page, on 2026-09-03.** The response
+   *shapes* were checked: a development-mode app read this client's own field
+   selections back from a real Page, and the fixtures were corrected where they
+   differed (comments carry `permalink_url`; list responses carry
+   `paging.cursors`). Fixture *values* remain synthetic. Two paths are still
+   unexercised against live Graph and matter: **unpublished, ad-backed posts**
+   — the capability this server exists for, on a Page that had none — and
+   **pagination**, since every live response fitted one page. See
+   `fixtures/README.md`.
+2. **Graph does return a comment's author — verified, but undocumented.** A
+   third-party comment came back with `from: { name, id }`, so in practice
+   `statusBasis` is `"author_identity"` and `needs_reply` answers the real
+   question: *has the Page replied to this comment?* The catch is that `from`
+   is not listed among the Comment node's documented fields, so it could stop
+   arriving without notice. The server therefore keeps a degraded path: with no
+   author, it cannot tell who replied, only that *someone* did, and
+   `needs_reply` weakens to *has anyone replied at all?* Every response reports
    which basis it used, as `statusBasis`: `"author_identity"` or
-   `"reply_count"`.
+   `"reply_count"`. Check it before trusting the answer.
 3. **Some ad formats produce no Page post at all.** Their comments have
    nowhere to be read from on the Page side, by this server or any other
    Page-based approach — there is no post id to sweep, reply to, or moderate.
