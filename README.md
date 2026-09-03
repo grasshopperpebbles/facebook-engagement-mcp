@@ -5,6 +5,9 @@ An MCP server for triaging comments on a Facebook Page.
 Most Facebook MCP servers read your Page's published feed. Comments on your
 **ads** usually live on unpublished posts, which that feed does not return —
 so those servers cannot see them at all. This one reads `/feed`, and can.
+What that does and does not reach is set out under
+[Known limitations](#known-limitations) — some ad formats produce no Page post
+for anyone to read, and nothing here has been verified against a live Page.
 
 ## What it does
 
@@ -31,9 +34,32 @@ so those servers cannot see them at all. This one reads `/feed`, and can.
 
 ## Install and configure
 
-Requires Node 22 or later. Not yet published to npm (see the Changelog), so
-for now install from a local checkout or a git reference; once published it
-runs the same way any `npx`-launched MCP server does:
+Requires Node 22 or later.
+
+This package is **not yet published to npm** (see the
+[Changelog](./CHANGELOG.md)), so `npx facebook-engagement-mcp` cannot resolve
+it yet. Until it is, install from source:
+
+```bash
+git clone https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
+cd facebook-engagement-mcp
+npm install
+```
+
+`npm install` builds the server as part of its `prepare` step, leaving a
+runnable entry point at `<checkout>/dist/index.js`. Take note of that absolute
+path — the client configuration below needs it. After editing anything under
+`src/`, rebuild with `npm run build`.
+
+Installing straight from the git URL works too, and builds itself the same
+way:
+
+```bash
+npm install github:grasshopperpebbles/facebook-engagement-mcp
+```
+
+Once the package is published, none of that is needed and it runs the way any
+`npx`-launched MCP server does:
 
 ```bash
 npx facebook-engagement-mcp
@@ -49,10 +75,17 @@ any tool ever supplies a credential:
 
 See [`.env.example`](./.env.example).
 
+Every configuration below launches the checkout directly: `node`, with one
+argument — the absolute path to `dist/index.js` inside the directory you
+cloned. Replace `/absolute/path/to/facebook-engagement-mcp` with your own.
+These work today. Once the package is published to npm, `"command": "npx"`
+with `"args": ["-y", "facebook-engagement-mcp"]` becomes the correct form and
+the checkout stops being necessary; that form does **not** work before then.
+
 ### Claude Code
 
 ```bash
-claude mcp add facebook-engagement -e META_ACCESS_TOKEN=your-user-access-token-here -e FACEBOOK_ENGAGEMENT_ENABLE_WRITES=false -- npx -y facebook-engagement-mcp
+claude mcp add facebook-engagement -e META_ACCESS_TOKEN=your-user-access-token-here -e FACEBOOK_ENGAGEMENT_ENABLE_WRITES=false -- node /absolute/path/to/facebook-engagement-mcp/dist/index.js
 ```
 
 or, in `.mcp.json`:
@@ -61,8 +94,8 @@ or, in `.mcp.json`:
 {
   "mcpServers": {
     "facebook-engagement": {
-      "command": "npx",
-      "args": ["-y", "facebook-engagement-mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
@@ -80,8 +113,8 @@ In `claude_desktop_config.json`:
 {
   "mcpServers": {
     "facebook-engagement": {
-      "command": "npx",
-      "args": ["-y", "facebook-engagement-mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
@@ -99,8 +132,8 @@ In `.cursor/mcp.json`:
 {
   "mcpServers": {
     "facebook-engagement": {
-      "command": "npx",
-      "args": ["-y", "facebook-engagement-mcp"],
+      "command": "node",
+      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
@@ -293,8 +326,9 @@ one call with the opposite `action`. There is no delete.
 { "ok": true, "commentId": "612345_998_c2", "action": "unhide", "hidden": false }
 ```
 
-If Meta answers with HTTP 200 but `success: false` — it happens — the tool
-reports an error rather than `ok: true`, because nothing actually changed.
+Meta's Graph API documentation describes moderation calls that answer HTTP
+200 with `success: false`. Where that happens the tool reports an error rather
+than `ok: true`, because nothing actually changed.
 
 ## Permissions
 
@@ -307,12 +341,12 @@ reports an error rather than `ok: true`, because nothing actually changed.
 
 `META_ACCESS_TOKEN` is a **user** token. The server exchanges it for a
 per-Page token via `GET /me/accounts` and uses that Page token for every
-comment read, reply, and moderation call. This is not an optimization: Graph
-returns an **empty array**, not an error, for comment reads made with a user
-token, which reads as "no comments" rather than "wrong kind of token." If a
-`comment_activity` call ever had to fall back to the user token — the Page
-could not be determined from the target given — the response says so in
-`notes` for exactly this reason.
+comment read, reply, and moderation call. This is not an optimization: per
+Meta's Graph API documentation, comment reads made with a user token come back
+as an **empty array** rather than an error, which reads as "no comments"
+rather than "wrong kind of token." If a `comment_activity` call ever had to
+fall back to the user token — the Page could not be determined from the target
+given — the response says so in `notes` for exactly this reason.
 
 `MODERATE` is a **Page role**, granted to a person or app in the Page's own
 settings, not an app-level permission granted through App Review. A token can
@@ -404,13 +438,14 @@ tools can cover. This server does not try to match that breadth — it does one
 thing, comment triage including the ad-backed posts other servers miss, and
 stops there.
 
-That breadth comes at a cost this server does not: at the time of writing,
-none of the wider servers surveyed ship a visible, runnable test suite. This
-one does — 161 passing tests exercising triage logic, response rendering,
-pagination, retries, token exchange, and the MCP protocol surface itself
-(see [Development](#development)) — but it is also the narrower tool. Neither
-property makes the other one true; a reader deciding between them is trading
-surface area for a suite they can run and read.
+That breadth comes at a cost this server does not: of the four Facebook MCP
+servers covering Page comments that were surveyed on 2026-09-03, none ships a
+visible, runnable test suite. This one does — 162 passing tests exercising
+triage logic, response rendering, pagination, retries, token exchange, and the
+MCP protocol surface itself (see [Development](#development)) — but it is also
+the narrower tool. Neither property makes the other one true; a reader
+deciding between them is trading surface area for a suite they can run and
+read.
 
 ## Development
 
@@ -419,12 +454,16 @@ npm install
 npm run check   # lint, typecheck, and the full unit test suite
 ```
 
-`npm run check` currently passes at **161 tests passing, 5 skipped**. The 5
-skipped tests are the live integration suite (`test/integration.test.ts`),
-skipped unless opted into — they call the real Graph API against a real
-Facebook Page and are never run in CI.
+`npm run check` currently passes at **162 tests passing, 5 skipped**. The 5
+skipped tests are the live ones in `test/integration.test.ts`: they would call
+the real Graph API against a real Facebook Page, and are skipped unless you
+opt in explicitly with the variables below. **They have never been run — no
+live Facebook Page has been used for this package**, which is why
+[Known limitations](#known-limitations) opens the way it does. The sixth test
+in that file asserts the opt-in gating itself, needs nothing live, and always
+runs.
 
-To run them:
+To run the live ones:
 
 ```bash
 export META_ACCESS_TOKEN=your-user-access-token-here
@@ -449,3 +488,7 @@ reads must not silently opt into writes as well.
 It is **never hand-edited** — a fix belongs upstream in `gpp-mcp`, followed by
 re-running the extraction. `src/vendor/meta-client/VENDOR.md` records exactly
 which files were copied and the source commit the extraction was taken from.
+
+## License
+
+Apache-2.0 — see [`LICENSE`](./LICENSE).
