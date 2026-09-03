@@ -1,0 +1,11 @@
+{
+  "data": [
+    {
+      "id": "pg1_p2_c1_r1",
+      "message": "Yes, until Friday.",
+      "created_time": "2026-08-30T11:30:00+0000",
+      "from": { "id": "pg1", "name": "Test Shop" },
+      "comment_count": 0
+    }
+  ]
+}

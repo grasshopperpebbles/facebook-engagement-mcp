@@ -1,0 +1,24 @@
+{
+  "data": [
+    {
+      "id": "pg1_p2_c1",
+      "message": "Is this price real?",
+      "created_time": "2026-08-30T11:00:00+0000",
+      "from": { "id": "u2", "name": "Another Customer" },
+      "like_count": 2,
+      "comment_count": 1,
+      "is_hidden": false,
+      "can_comment": true,
+      "can_hide": true
+    },
+    {
+      "id": "pg1_p2_c2",
+      "message": "spam link",
+      "created_time": "2026-08-30T12:00:00+0000",
+      "from": { "id": "u3", "name": "Spammer" },
+      "comment_count": 0,
+      "is_hidden": true,
+      "can_hide": true
+    }
+  ]
+}

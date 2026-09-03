@@ -1,0 +1,5 @@
+{
+  "data": [
+    { "id": "pg1", "name": "Test Shop", "category": "Retail", "tasks": ["MODERATE", "ANALYZE"] }
+  ]
+}
