@@ -9,8 +9,10 @@ export const inputSchema = {
     .string()
     .optional()
     .describe(
-      "Page ID. Sweeps the Page's posts, including unpublished ad-backed posts. " +
-        "Omit every target to list the Pages this identity can reach.",
+      "Page ID. Sweeps the Page's published posts. This does NOT reach comments on " +
+        "ads: they usually run on unpublished posts, which no Page-level sweep returns " +
+        "— pass an ad or campaign ID for those. Omit every target to list the Pages " +
+        "this identity can reach.",
     ),
   post: z
     .string()

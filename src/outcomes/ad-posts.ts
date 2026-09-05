@@ -3,9 +3,12 @@ import type { MetaClient } from "../vendor/meta-client/index.js"
 /**
  * Resolve an ad or campaign to the Page posts behind it.
  *
- * Ad → creative → `effective_object_story_id` → Page post. This exists only in
- * the in-repo server, which already has a Marketing client; the standalone
- * takes a post ID directly.
+ * Ad → creative → `effective_object_story_id` → Page post. This is not a
+ * convenience over the page sweep — it is the only route to ad comments.
+ * `/feed` does not return unpublished posts (verified live 2026-09-03) and ads
+ * usually run on them, so a post reached this way is one no Page-level sweep
+ * would have found. Both servers carry it; a build with no Marketing surface
+ * cannot discover these posts at all.
  */
 export async function resolveAdPosts(
   meta: MetaClient,
