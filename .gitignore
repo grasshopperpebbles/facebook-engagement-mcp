@@ -11,3 +11,4 @@ page-token.env
 
 .DS_Store
 *.log
+build/

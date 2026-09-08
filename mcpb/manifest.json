@@ -1,0 +1,61 @@
+{
+  "manifest_version": "0.3",
+  "name": "facebook-engagement-mcp",
+  "display_name": "Facebook Page Comments",
+  "version": "0.1.0",
+  "description": "Find and group the comments on a Facebook Page's posts and ads, including comments on the unpublished posts ads run on.",
+  "long_description": "Answers \"what are people saying on our Page, and does any of it need a reply\" — including on ads.\n\nAds usually run on **unpublished** posts, and no Page-level sweep returns those, so most tools cannot see ad comments at all. This one resolves an ad or campaign to the post behind it and reads the comments there.\n\nYou do not need to know an ad's ID. Ask what is running and it will list your ad accounts, then the campaigns in one, by name.\n\n**Replying and hiding are off unless you switch them on.** With them on, publishing a reply still asks you to confirm first. There is no delete, deliberately: hiding is reversible, deletion is not, and it destroys something a member of the public wrote.",
+  "author": {
+    "name": "Grasshopper Pebbles"
+  },
+  "license": "Apache-2.0",
+  "keywords": ["facebook", "comments", "moderation", "ads", "graph-api", "meta"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "META_ACCESS_TOKEN": "${user_config.meta_access_token}",
+        "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "${user_config.enable_writes}"
+      }
+    }
+  },
+  "user_config": {
+    "meta_access_token": {
+      "type": "string",
+      "title": "Meta access token",
+      "description": "A Facebook user access token for the account that administers the Page. Long-lived tokens last about 60 days; a token taken straight from the Graph API Explorer expires within the hour.",
+      "sensitive": true,
+      "required": true
+    },
+    "enable_writes": {
+      "type": "boolean",
+      "title": "Allow replying and hiding comments",
+      "description": "Off by default. When on, replies are published publicly as the Page and you are asked to confirm each one. Requires pages_manage_engagement and the MODERATE role on the Page.",
+      "default": false,
+      "required": false
+    }
+  },
+  "tools": [
+    {
+      "name": "comment_activity",
+      "description": "Read-only. Sweeps a Page, an ad, a campaign, a post or a comment thread, marks which threads still need a reply from the Page, and groups them with counts. With no target it lists the Pages and ad accounts you can reach; with an ad account it lists that account's campaigns by name."
+    },
+    {
+      "name": "respond_to_comment",
+      "description": "Publishes a public reply as the Page. Registered only when replying is switched on, and asks for confirmation before publishing."
+    },
+    {
+      "name": "moderate_comment",
+      "description": "Hides or unhides a comment. Reversible. Registered only when replying is switched on. There is no delete tool."
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32"],
+    "runtimes": {
+      "node": ">=22.0.0"
+    }
+  }
+}

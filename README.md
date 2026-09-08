@@ -53,6 +53,50 @@ Fuller detail under [Known limitations](#known-limitations).
 
 ## Install and configure
 
+### As a Claude Desktop extension (`.mcpb`) — the route for someone who is not a developer
+
+Claude Desktop installs a bundle from a single file. The person installing it
+double-clicks `facebook-engagement-mcp-<version>.mcpb`, fills in two fields on
+the install screen, and is done — **no terminal, no JSON, no Node install**
+(Claude Desktop supplies its own Node), and nothing to sign, because a bundle
+is installed by Claude Desktop rather than judged by macOS Gatekeeper.
+
+The two fields are the ones under `user_config` in
+[`mcpb/manifest.json`](./mcpb/manifest.json): the **Meta access token**, which
+is marked `sensitive` so it is masked on entry, and a **checkbox for replying
+and hiding**, off by default.
+
+Build the bundle:
+
+```bash
+npm run mcpb:pack      # builds, stages, installs prod deps, writes build/*.mcpb
+npm run mcpb:verify    # unpacks it and launches it — do not skip this
+```
+
+**`mcpb:verify` is not a formality.** This project has already shipped an entry
+point that exited 0 having started nothing, because a guard comparing
+`import.meta.url` to `process.argv[1]` was false under a symlinked launch.
+Twelve reviews read that line; what caught it was launching the installed
+artifact. `mcpb:verify` unzips the real bundle, launches the entry point by the
+exact path `mcp_config` names, and speaks MCP to it — with writes off and on,
+checking the right tools register each way. Packing is not evidence.
+
+Two things about this route are **not yet verified**, and both are claims about
+someone else's software:
+
+- **Where Claude Desktop puts a `sensitive` value.** The manifest spec says
+  "mask input and store securely" and does not say where. Nobody should be told
+  their Facebook token is safe on the strength of that sentence.
+- **How a `boolean` field substitutes into an environment variable.** The
+  server enables writes on exactly the string `true`. If a checkbox arrives as
+  anything else, writes stay off — the safe direction, but silently.
+
+And the honest caveat about what is inside: the ad path this bundle exists to
+deliver **has never run against a real ad**. Do not hand this to a client
+before that is done.
+
+### From source
+
 Requires Node 22 or later.
 
 This package is **not yet published to npm** (see the

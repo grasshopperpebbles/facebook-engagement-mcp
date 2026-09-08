@@ -43,7 +43,9 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "check": "npm run lint && npm run typecheck && npm test",
-    "extract": "node scripts/extract.mjs"
+    "extract": "node scripts/extract.mjs",
+    "mcpb:pack": "node scripts/pack-mcpb.mjs",
+    "mcpb:verify": "node scripts/verify-mcpb.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.30.0",
