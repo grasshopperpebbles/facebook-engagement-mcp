@@ -551,6 +551,39 @@ straight out of the Graph API Explorer works beautifully until lunchtime. That
 has already cost this project a day: a session opened with a token minted the
 previous afternoon and found it had expired nineteen hours earlier.
 
+### The token expires, and it will keep expiring
+
+This is the part people are not told until it bites them. **A long-lived user
+token lasts about 60 days.** There is no renewal, no refresh token, and no
+warning — one day a call simply fails with:
+
+> The Meta access token has expired or been revoked, so this call was refused
+> before it reached the Page.
+
+Then someone mints a new one and pastes it in again. **Every 60 days, per
+person, forever.** With one operator that is twice a year. With five people
+using the bundle it is ten token mintings a year, all done by whoever owns the
+Meta app, and each one breaks somebody's tool until it is done.
+
+Three ways to live with it, worst to best:
+
+1. **Do nothing.** Re-mint when it breaks. Fine for one person, miserable for
+   several, and the failure always arrives mid-task.
+2. **Diarise it.** Re-mint on day 55. Cheap, and it turns an outage into a
+   chore.
+3. **Use a Business Manager System User token.** A System User is a
+   non-human identity inside a business portfolio, and tokens issued to one are
+   not on the 60-day clock. If your Pages sit in a business portfolio, this is
+   the option that removes the treadmill rather than scheduling it.
+
+**Option 3 is documented, not verified here.** Meta describes System User tokens
+as long-lived or non-expiring depending on how they are issued, and
+`src/auth/token-provider.ts` was written expecting "the user or system token" —
+but no System User token has been run through this server. Treat it as the thing
+to try, not a promise. If you try it, the check is the same as any other token:
+`/me/accounts` must return the Pages you expect, and `debug_token` must show the
+scopes and the expiry.
+
 **Whoever sets this up mints the token — not the person using it.** That is the
 part worth being explicit about, because the `.mcpb` install screen asks for a
 token as if the person installing it would have one, and they will not. Creating
