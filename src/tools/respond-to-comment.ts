@@ -16,13 +16,6 @@ export const inputSchema = {
     .boolean()
     .default(false)
     .describe("Report what would be published without publishing it."),
-  confirmed: z
-    .boolean()
-    .default(false)
-    .describe(
-      "Set true to confirm publishing when the client cannot show a confirmation " +
-        "prompt. Review a dryRun first.",
-    ),
 }
 
 export const description =
@@ -35,8 +28,6 @@ export interface RespondOptions {
   message: string
   pageId?: string | undefined
   dryRun?: boolean | undefined
-  /** Ignored by the runner. Confirmation is enforced at registration, where the server object is in scope. */
-  confirmed?: boolean | undefined
 }
 
 export interface RespondDeps {

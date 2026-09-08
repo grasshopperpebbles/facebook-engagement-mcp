@@ -43,11 +43,33 @@ function environmentRead(source: string): Set<string> {
   return names
 }
 
+/**
+ * Environment variables the server reads that the manifest deliberately does
+ * NOT pass, with the reason. A bundle is installed by the person least equipped
+ * to judge the consequence, so anything dangerous stays out of the install form.
+ */
+const DELIBERATELY_NOT_IN_MANIFEST = new Map([
+  [
+    "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES",
+    "Publishing without a confirmation prompt. Claude Desktop cannot elicit, so a checkbox " +
+      "here would make every reply publish silently — handing the bypass to exactly the " +
+      "audience this bundle exists for. Set it in a shell if you are automating deliberately.",
+  ],
+])
+
 describe("mcpb manifest", () => {
-  it("passes every environment variable the server actually reads", () => {
-    expect(new Set(Object.keys(manifest.server.mcp_config.env))).toEqual(
-      entrySource ? environmentRead(entrySource) : new Set(),
-    )
+  it("passes every environment variable the server reads, minus the deliberate omissions", () => {
+    const passed = new Set(Object.keys(manifest.server.mcp_config.env))
+    const read = environmentRead(entrySource)
+    for (const name of DELIBERATELY_NOT_IN_MANIFEST.keys()) read.delete(name)
+
+    expect(passed).toEqual(read)
+  })
+
+  it("does not offer the unconfirmed-write override in the install form", () => {
+    for (const name of DELIBERATELY_NOT_IN_MANIFEST.keys()) {
+      expect(JSON.stringify(manifest)).not.toContain(name)
+    }
   })
 
   it("resolves every ${user_config.x} to a declared field", () => {

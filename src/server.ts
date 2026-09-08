@@ -71,6 +71,18 @@ export interface ServerOptions {
   accessToken: string
   /** Write tools are not registered unless this is true (architecture §7). */
   enableWrites?: boolean
+  /**
+   * Publish without a confirmation prompt on a client that cannot show one.
+   *
+   * Set from the environment, never from a tool argument. This used to be a
+   * `confirmed` boolean in the tool's input schema, which meant the model
+   * granted its own permission — and it did: asked to publish on a client
+   * without elicitation, Claude Desktop's model announced it would "fire it
+   * with dryRun: false and confirmed: true". An environment variable is
+   * something a person sets and a model cannot reach, which is the only
+   * property that matters here.
+   */
+  allowUnconfirmedWrites?: boolean
   /** Injected by tests and evals to serve recorded fixtures. */
   fetchImpl?: FetchImpl
   today?: Date
@@ -142,11 +154,16 @@ export function createServer(options: ServerOptions): McpServer {
         asToolResult(async () => {
           if (args.dryRun !== true) {
             const confirmed = await confirmReply(server, args.commentId)
-            if (confirmed === "unsupported" && args.confirmed !== true) {
+            if (confirmed === "unsupported" && options.allowUnconfirmedWrites !== true) {
               return {
                 error:
-                  "This client cannot show a confirmation prompt. Review the reply with " +
-                  "dryRun: true, then call again with confirmed: true.",
+                  "This client cannot show a confirmation prompt, so this reply was not " +
+                  "published. Publishing as the Page is public immediately and cannot be " +
+                  "taken back, so it needs a person's approval rather than a model's. Use a " +
+                  "client that supports MCP elicitation, or — if you are automating this " +
+                  "deliberately — set FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES=true in " +
+                  "the server's environment, which only someone with access to that " +
+                  "environment can do.",
               }
             }
             if (confirmed === false) {

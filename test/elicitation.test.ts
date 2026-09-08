@@ -17,12 +17,15 @@ async function connect(options: {
    * a boolean at all. Every one of those is a refusal.
    */
   elicitReply?: { action: string; content?: Record<string, unknown> }
+  /** Mirrors the operator-set environment override. */
+  allowUnconfirmedWrites?: boolean
   fetchImpl: ReturnType<typeof vi.fn>
 }) {
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   const server = createServer({
     accessToken: "fixture",
     enableWrites: true,
+    ...(options.allowUnconfirmedWrites === true && { allowUnconfirmedWrites: true }),
     fetchImpl: options.fetchImpl as never,
   })
   const elicits = options.elicitation !== undefined || options.elicitReply !== undefined
@@ -108,13 +111,35 @@ describe("respond_to_comment confirmation", () => {
     await client.close()
   })
 
-  it("accepts an explicit confirmed flag when the client cannot elicit", async () => {
+  // Reversal of an earlier decision, 2026-09-08. The tool used to accept a
+  // `confirmed` boolean as a stand-in for a human when the client could not
+  // prompt. That flag is a tool argument, so the model supplied it — observed
+  // in Claude Desktop, which does not elicit: asked to publish, the model
+  // announced it would "fire it with dryRun: false and confirmed: true". A
+  // confirmation the model can grant itself is not a confirmation.
+  it("refuses to publish when the client cannot elicit, even if asked to confirm", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
     const client = await connect({ fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
       arguments: { commentId: "c1", message: "Thanks!", confirmed: true },
+    })
+
+    expect(result.isError).toBe(true)
+    expect(fetchImpl).not.toHaveBeenCalled()
+    await client.close()
+  })
+
+  // The escape hatch for automation lives in the environment, which a person
+  // sets and a model cannot reach — the whole point of moving it there.
+  it("publishes without a prompt only when the operator set the environment override", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const client = await connect({ fetchImpl, allowUnconfirmedWrites: true })
+
+    const result = await client.callTool({
+      name: "respond_to_comment",
+      arguments: { commentId: "c1", message: "Thanks!" },
     })
 
     expect(result.isError).toBeFalsy()

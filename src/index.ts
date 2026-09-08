@@ -24,7 +24,20 @@ async function main(): Promise<void> {
     )
   }
 
-  await createServer({ accessToken, enableWrites }).connect(new StdioServerTransport())
+  // Deliberately environment-only: a model can set a tool argument, and did.
+  // See ServerOptions.allowUnconfirmedWrites.
+  const allowUnconfirmedWrites =
+    process.env["FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES"] === "true"
+  if (enableWrites && allowUnconfirmedWrites) {
+    console.error(
+      "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES=true: replies will publish without asking, " +
+        "on clients that cannot show a confirmation prompt.",
+    )
+  }
+
+  await createServer({ accessToken, enableWrites, allowUnconfirmedWrites }).connect(
+    new StdioServerTransport(),
+  )
 }
 
 /**
