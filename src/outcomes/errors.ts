@@ -26,7 +26,17 @@ export function explainGraphError(
   const trace = error.fbtraceId ? ` (Meta trace ${error.fbtraceId})` : ""
 
   if (error.isAuthError) {
-    return `The access token is invalid or expired; re-authenticate and retry.${trace}`
+    // Deliberately concrete. "Re-authenticate" reads as an OAuth flow, and this
+    // server has none — a person pastes a token into the client's config — so
+    // that wording sends a caller looking for a reconnect button that does not
+    // exist. Observed happening on 2026-09-08.
+    return (
+      "The Meta access token has expired or been revoked, so this call was refused before it " +
+      "reached the Page. Mint a new user token and set it as META_ACCESS_TOKEN wherever this " +
+      "server is configured — in Claude Desktop that is Settings, Extensions, this extension, " +
+      "Configure. A token copied from the Graph API Explorer lasts about an hour; exchange it " +
+      `for a long-lived one to get about 60 days.${trace}`
+    )
   }
 
   if (error.isThrottled) {
