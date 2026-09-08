@@ -547,26 +547,20 @@ package.
 
 This README says what a token must *be*. It does not say how to make one,
 because that is a Meta app setup rather than a property of this server, and it
-is written up in full elsewhere. There are three companion pieces:
+is written up in full in [`docs/`](./docs/). Three articles:
 
-- **"Reading Facebook Page Comments with the Graph API: App Setup, Tokens, and
-  Permissions"** — app creation, the token chain, verifying the scopes you
-  actually got, and the `MODERATE` check, each step walked against a live Page
-  rather than read off the documentation. It ships with three runnable scripts,
-  including one that does the `/me/accounts` exchange and flags any Page missing
-  `MODERATE`. **Start here.**
-- **"Facebook's `/feed` Does Not Return Unpublished Posts"** — the finding
-  behind [Use the right target](#use-the-right-target), the reproduction, and
-  how to build a paused test ad to check the chain yourself.
-- **"Meta Told Me I Needed a Permission That Died in 2018"** — the
-  `publish_actions` refusal in [Troubleshooting](#troubleshooting), why the
-  message misleads, and the four checks that isolate it.
+- **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** — app
+  creation, the token chain, verifying the scopes you actually got, and the
+  `MODERATE` check, each step walked against a live Page rather than read off
+  the documentation. **Start here.**
+- **[Dark posts and why `/feed` misses your ads](./docs/dark-posts.md)** — the
+  finding behind [Use the right target](#use-the-right-target), the
+  reproduction, and how to build a paused test ad to check the chain yourself.
+- **[The `publish_actions` error](./docs/publish-actions-error.md)** — the
+  refusal in [Troubleshooting](#troubleshooting), why the message misleads, and
+  the four checks that isolate it.
 
-<!-- TODO: link the article here once it is published. Deliberately no link
-     until then, rather than a plausible-looking URL that 404s. -->
-
-**None of the three is published yet, so there is no URL to link.** Everything
-you strictly need is below; the article is the long version with the screenshots and
+Everything you strictly need is below; the articles are the long version with the screenshots and
 the failure modes.
 
 The shape of it, so you know what you are in for:
