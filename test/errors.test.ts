@@ -31,3 +31,25 @@ describe("expired token", () => {
     expect(explainGraphError(expired(), { operation: "read" })).toMatch(/hour|60 day/i)
   })
 })
+
+describe("permission refusals keep Meta's own words", () => {
+  // Observed 2026-09-08: replying to a comment was refused with "(#200) The
+  // permission(s) publish_actions are not available. It has been deprecated."
+  // publish_actions died in 2018 and is not the permission this call needs, so
+  // the message is misleading — but it is also the only clue, and this server
+  // was discarding it in favour of its own explanation. A caller then debugged
+  // the wrong thing.
+  it("appends Meta's message rather than replacing it", () => {
+    const refused = new MetaApiError({
+      message:
+        "(#200) The permission(s) publish_actions are not available. It has been deprecated.",
+      status: 403,
+      code: 200,
+    })
+
+    const explained = explainGraphError(refused, { operation: "reply" })
+
+    expect(explained).toMatch(/pages_manage_engagement/)
+    expect(explained).toMatch(/publish_actions/)
+  })
+})

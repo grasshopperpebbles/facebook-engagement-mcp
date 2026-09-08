@@ -52,9 +52,15 @@ export function explainGraphError(
       )
     }
     const permission = PERMISSION_BY_OPERATION[context.operation] ?? "the relevant Page permission"
+    // Meta's own message is kept, always. It is often misleading — a refused
+    // reply comes back naming `publish_actions`, deprecated since 2018 and not
+    // the permission involved — but it is the only thing that distinguishes one
+    // refusal from another, and a caller who cannot see it debugs the wrong
+    // thing. Observed happening 2026-09-08.
     return (
       `Meta refused this ${context.operation} for lack of permission. It requires ${permission}, ` +
-      `which requires App Review for Pages outside your own development-mode app.${trace}`
+      "which requires App Review for Pages outside your own development-mode app. " +
+      `Meta's own words, which may name a different or deprecated permission: "${error.message}"${trace}`
     )
   }
 
