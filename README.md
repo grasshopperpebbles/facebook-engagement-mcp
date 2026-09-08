@@ -27,9 +27,12 @@ Fuller detail under [Known limitations](#known-limitations).
 
 ## What it does
 
-- **`comment_activity`** — sweeps a Page, a single post, or a single comment
-  thread, assembles reply threads, works out which ones still need a reply
-  from the Page, and returns them grouped with per-group counts.
+- **`comment_activity`** — sweeps a Page, an ad, a campaign, a single post, or
+  a single comment thread, assembles reply threads, works out which ones still
+  need a reply from the Page, and returns them grouped with per-group counts.
+  With no target it lists what this identity can reach; with an `adAccount` it
+  lists that account's campaigns by name, so an ad can be chosen without
+  knowing its id.
 - **`respond_to_comment`** — publishes a reply to a comment as the Page.
 - **`moderate_comment`** — hides or unhides a comment (reversible; there is no
   delete).
@@ -168,13 +171,38 @@ comments on unpublished ad-backed posts that the published feed does not show.
 
 | Parameter | Type | Default | Notes |
 |---|---|---|---|
-| `page` | string, optional | — | Page ID. Sweeps the Page's posts, including unpublished ad-backed ones. Omit every target (`page`, `post`, `comment`) to instead list the Pages this identity can reach. |
+| `page` | string, optional | — | Page ID. Sweeps the Page's **published** posts. This does not reach comments on ads — see `ad`/`campaign` below. Omit every target to instead list the Pages and ad accounts this identity can reach. |
 | `post` | string, optional | — | Post ID. Use when another tool or a previous call gave you one. Mutually exclusive with `page`. |
 | `comment` | string, optional | — | Comment ID. Returns that comment and its replies. Mutually exclusive with the others. |
+| `ad` | string, optional | — | Ad ID. Resolves the ad to the Page post behind it, then reads that post's comments. The only route to comments on an ad. Needs `ads_read`. |
+| `campaign` | string, optional | — | Campaign ID. Reads comments across every Page post behind the campaign's ads. Needs `ads_read`. |
+| `adAccount` | string, optional | — | Ad account ID (`act_…`). Lists that account's campaigns by name and status and reads no comments — the rung between orientation and a sweep. Needs `ads_read`. |
 | `filter` | enum, optional | `"needs_reply"` | One of `needs_reply`, `unanswered`, `hidden`, `all`. `needs_reply` and `unanswered` are the same filter: no reply has come from the Page. |
 | `groupBy` | enum, optional | `"post"` | One of `post`, `author`, `status`, `day`, `none`. Each group carries its own counts. |
 | `since` | string, optional | 30 days ago | `YYYY-MM-DD`. Filters the Page's post sweep server-side; only applies to a `page` target. |
 | `maxThreads` | number, optional | `100` | 1–500. Cap on returned threads, applied after filtering, newest first. Pagination against Graph is handled internally. |
+
+
+#### Finding an ad without knowing its id
+
+Ad ids are 17-digit numbers out of Ads Manager, and nobody working
+conversationally has one to hand. Three rungs, cheapest first:
+
+| Call | Reads | Returns |
+|---|---|---|
+| no target | two list calls | `pages` and `adAccounts` |
+| `adAccount: "act_…"` | one list call | `campaigns`: id, name, status |
+| `campaign` / `ad` | the full sweep | the comments |
+
+The first two rungs read no posts and no comments, so they are cheap enough to
+walk speculatively. `campaigns[].status` prefers Graph's `effective_status`
+over `status`, because a campaign set ACTIVE inside a paused ad set is not
+running. Every campaign is listed whatever its status: a finished campaign's
+comments are still comments.
+
+Both ad rungs need **`ads_read`**. Orientation degrades rather than failing
+when it is absent — the Pages still come back, with a note naming the missing
+scope.
 
 Example call: `{ "page": "612345", "filter": "all", "groupBy": "post" }`
 against a Page with one organic post and one unpublished ad-backed post,
@@ -353,10 +381,13 @@ than `ok: true`, because nothing actually changed.
 | `comment_activity` | `pages_read_engagement`, `pages_read_user_content` | Page token (see below) |
 | `respond_to_comment` | `pages_manage_engagement` | Page token, and the token's Page role must include `MODERATE` |
 | `moderate_comment` | `pages_manage_engagement` | Page token, and the token's Page role must include `MODERATE` |
-| Listing which Pages this identity can reach (no target given) | `pages_show_list` | User token |
+| Listing what this identity can reach (no target given) | `pages_show_list`, and `ads_read` for the ad accounts | User token |
+| `comment_activity` with an `adAccount` target | `ads_read` | User token |
 | `comment_activity` with an `ad` or `campaign` target | `ads_read`, plus the reads above | User token to resolve the ad; Page token to read the comments |
 
-`ads_read` is only needed for `ad` and `campaign` targets. If you never pass
+`ads_read` is only needed for the ad targets — `ad`, `campaign` and
+`adAccount` — and for listing ad accounts during orientation, which degrades
+to a note rather than an error without it. If you never pass
 one, omit it — a token that cannot read your ad account is a smaller thing to
 hand out. It is also a separate App Review item.
 

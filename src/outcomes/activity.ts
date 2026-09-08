@@ -11,7 +11,13 @@ import {
   type UntrustedText,
   untrustedText,
 } from "../render/truncate.js"
-import type { Comment, MetaClient, Page, PagesClient } from "../vendor/meta-client/index.js"
+import type {
+  Campaign,
+  Comment,
+  MetaClient,
+  Page,
+  PagesClient,
+} from "../vendor/meta-client/index.js"
 import { resolveAdPosts } from "./ad-posts.js"
 import { explainGraphError } from "./errors.js"
 import { type Counts, countThreads, type Group, type GroupBy, groupThreads } from "./grouping.js"
@@ -31,6 +37,28 @@ export type Target =
   | { kind: "comment"; id: string }
   | { kind: "ad"; id: string }
   | { kind: "campaign"; id: string }
+  | { kind: "adAccount"; id: string }
+
+/** An ad account this identity can reach. Orientation only — no spend, no budgets. */
+export interface AdAccountSummary {
+  id: string
+  name?: string
+}
+
+/**
+ * A campaign, named so a person can choose one without knowing its id.
+ *
+ * `status` prefers `effective_status`, which accounts for a parent being
+ * paused or an account being disabled; `status` alone reports only what was
+ * set on the campaign itself. Every campaign is listed regardless of status:
+ * a finished campaign's comments are still comments, and which statuses
+ * matter is the caller's judgement, not this server's.
+ */
+export interface CampaignSummary {
+  id: string
+  name?: string
+  status?: string
+}
 
 /**
  * `ThreadPost` with its free text moved behind the same untrusted marker as
@@ -83,6 +111,7 @@ export interface RunOptions {
   comment?: string | undefined
   ad?: string | undefined
   campaign?: string | undefined
+  adAccount?: string | undefined
   filter?: Filter | undefined
   groupBy?: GroupBy | undefined
   since?: string | undefined
@@ -96,6 +125,11 @@ export interface Deps {
   logger?: Logger
   meta?: MetaClient
 }
+
+/** Ad accounts listed during orientation. */
+const MAX_AD_ACCOUNTS = 50
+/** Campaigns listed for one account. Overflow is reported, never silently cut. */
+export const MAX_CAMPAIGNS = 100
 
 const DEFAULT_SINCE_DAYS = 30
 /** Posts scanned per Page sweep. Pagination is internal; no cursor is exposed. */
@@ -125,13 +159,58 @@ function isoDaysAgo(days: number, today: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
+/**
+ * Ad accounts for the orientation call, degraded to a note when they cannot be
+ * read.
+ *
+ * Most tokens carry no `ads_read` — it is needed only for ad and campaign
+ * targets — and orientation is the call a model makes before it knows what it
+ * needs. Failing the whole answer would hide the Pages the token *can* reach
+ * behind a permission it may never use, so a refusal is reported alongside the
+ * Pages rather than instead of them.
+ */
+async function listAdAccounts(
+  deps: Deps,
+): Promise<{ accounts?: AdAccountSummary[]; notes: string[] }> {
+  if (deps.meta === undefined) return { notes: [] }
+  try {
+    const { items } = await deps.meta.accounts.list({ maxItems: MAX_AD_ACCOUNTS })
+    return {
+      accounts: items.map((account) => ({
+        id: account.id,
+        ...(account.name !== undefined && { name: account.name }),
+      })),
+      notes: [],
+    }
+  } catch (cause) {
+    return {
+      notes: [`Ad accounts unavailable: ${explainGraphError(cause, { operation: "ad read" })}`],
+    }
+  }
+}
+
+/**
+ * `effective_status` in preference to `status`: a campaign set ACTIVE inside a
+ * paused ad set or a disabled account is not running, and only the effective
+ * value says so.
+ */
+function toCampaignSummary(campaign: Campaign): CampaignSummary {
+  const status = campaign.effective_status ?? campaign.status
+  return {
+    id: campaign.id,
+    ...(campaign.name !== undefined && { name: campaign.name }),
+    ...(status !== undefined && { status }),
+  }
+}
+
 function resolveTarget(options: RunOptions): Target | { error: string } {
-  const given = (["page", "post", "comment", "ad", "campaign"] as const).filter(
+  const given = (["page", "post", "comment", "ad", "campaign", "adAccount"] as const).filter(
     (k) => options[k] !== undefined,
   )
   if (given.length > 1) {
     return { error: `Give one target only; received ${given.join(" and ")}.` }
   }
+  if (options.adAccount !== undefined) return { kind: "adAccount", id: options.adAccount }
   if (options.page !== undefined) return { kind: "page", id: options.page }
   if (options.post !== undefined) return { kind: "post", id: options.post }
   if (options.comment !== undefined) return { kind: "comment", id: options.comment }
@@ -245,7 +324,12 @@ function pageIdForTarget(target: Target, posts: ThreadPost[]): string | undefine
 export async function runCommentActivity(
   deps: Deps,
   options: RunOptions,
-): Promise<CommentActivity | { pages: Page[] } | { error: string }> {
+): Promise<
+  | CommentActivity
+  | { pages: Page[]; adAccounts?: AdAccountSummary[]; notes?: string[] }
+  | { campaigns: CampaignSummary[]; truncated: boolean }
+  | { error: string }
+> {
   const target = resolveTarget(options)
   if ("error" in target) return target
 
@@ -255,14 +339,43 @@ export async function runCommentActivity(
   const logger = deps.logger ?? createLogger()
   let partial = false
 
-  // No target: the Page listing, which is the cheapest possible orientation
-  // call and needs only the user token.
+  // No target: what this identity can reach at all. Two cheap list calls, no
+  // posts and no comments — this is the call a model makes to find its feet
+  // before spending anything, and the ad accounts belong in it because ads are
+  // the only route to comments on unpublished posts.
   if (target.kind === "pages") {
+    let pages: Page[]
     try {
-      const { items } = await deps.client.pages.list({ maxItems: 100 })
-      return { pages: items }
+      pages = (await deps.client.pages.list({ maxItems: 100 })).items
     } catch (cause) {
       return { error: explainGraphError(cause, { operation: "read" }) }
+    }
+
+    const ads = await listAdAccounts(deps)
+    return {
+      pages,
+      ...(ads.accounts !== undefined && { adAccounts: ads.accounts }),
+      ...(ads.notes.length > 0 && { notes: ads.notes }),
+    }
+  }
+
+  // An ad account names its campaigns, so a person can pick one by name rather
+  // than pasting an id out of Ads Manager. Deliberately reads no comments: it
+  // is the rung between "what can I reach" and the sweep, and it is only worth
+  // walking speculatively while it stays cheap.
+  if (target.kind === "adAccount") {
+    if (deps.meta === undefined) {
+      return {
+        error: "Ad and campaign targets need Marketing API access, which is not configured.",
+      }
+    }
+    try {
+      const { items, truncated } = await deps.meta.campaigns.list(target.id, {
+        maxItems: MAX_CAMPAIGNS,
+      })
+      return { campaigns: items.map(toCampaignSummary), truncated }
+    } catch (cause) {
+      return { error: explainGraphError(cause, { operation: "ad read" }) }
     }
   }
 

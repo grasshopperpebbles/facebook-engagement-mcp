@@ -1,0 +1,31 @@
+{
+  "data": [
+    {
+      "id": "cmp1",
+      "name": "Spring Menu",
+      "status": "ACTIVE",
+      "effective_status": "ACTIVE",
+      "objective": "OUTCOME_ENGAGEMENT",
+      "start_time": "2026-08-01T00:00:00+0000",
+      "created_time": "2026-07-28T14:03:00+0000",
+      "updated_time": "2026-08-30T11:20:00+0000"
+    },
+    {
+      "id": "cmp2",
+      "name": "Weekend Brunch",
+      "status": "PAUSED",
+      "effective_status": "CAMPAIGN_PAUSED",
+      "objective": "OUTCOME_ENGAGEMENT",
+      "start_time": "2026-06-14T00:00:00+0000",
+      "stop_time": "2026-07-14T00:00:00+0000",
+      "created_time": "2026-06-10T08:45:00+0000",
+      "updated_time": "2026-07-14T00:00:00+0000"
+    }
+  ],
+  "paging": {
+    "cursors": {
+      "before": "QVFIUmNhbXBhaQ",
+      "after": "QVFIUmNhbXBhaR"
+    }
+  }
+}
