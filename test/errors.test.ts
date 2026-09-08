@@ -35,11 +35,20 @@ describe("expired token", () => {
 describe("permission refusals keep Meta's own words", () => {
   // Observed 2026-09-08: replying to a comment was refused with "(#200) The
   // permission(s) publish_actions are not available. It has been deprecated."
-  // publish_actions died in 2018 and is not the permission this call needs, so
-  // the message is misleading — but it is also the only clue, and this server
-  // was discarding it in favour of its own explanation. A caller then debugged
-  // the wrong thing.
-  it("appends Meta's message rather than replacing it", () => {
+  // publish_actions died in 2018, so the message is misleading — but it is also
+  // the only clue, and this server was discarding it in favour of its own
+  // explanation. A caller then debugged the wrong thing.
+  //
+  // CORRECTION, same day, established live: this assertion originally required
+  // the explanation to name `pages_manage_engagement`, because that was assumed
+  // to be the permission really at fault. It is not. `publish_actions` was the
+  // permission for publishing AS A USER; a write carrying a user token instead
+  // of a Page token reaches a code path whose permission no longer exists, and
+  // Graph names it. The refusal is about identity, and reproducing it took one
+  // call with the user token (T-26). Sending the reader to App Review for
+  // `pages_manage_engagement` was the wrong instruction, so the assertion that
+  // demanded it is wrong too.
+  it("names the identity problem rather than a permission that cannot be granted", () => {
     const refused = new MetaApiError({
       message:
         "(#200) The permission(s) publish_actions are not available. It has been deprecated.",
@@ -49,7 +58,21 @@ describe("permission refusals keep Meta's own words", () => {
 
     const explained = explainGraphError(refused, { operation: "reply" })
 
-    expect(explained).toMatch(/pages_manage_engagement/)
+    expect(explained).toMatch(/user token/i)
+    expect(explained).toMatch(/pageId/)
+    // Meta's own words survive, which was the point of the original test.
     expect(explained).toMatch(/publish_actions/)
+    // And it must not tell anyone to seek review for a permission removed in 2018.
+    expect(explained).not.toMatch(/requires App Review/i)
+  })
+
+  it("still explains an ordinary permission refusal in terms of the scope it needs", () => {
+    const refused = new MetaApiError({
+      message: "(#200) Permissions error",
+      status: 403,
+      code: 200,
+    })
+
+    expect(explainGraphError(refused, { operation: "reply" })).toMatch(/pages_manage_engagement/)
   })
 })

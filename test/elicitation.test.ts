@@ -6,6 +6,20 @@ import { createServer } from "../src/server.js"
 const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 })
 
 /**
+ * A fetch mock whose `/me/accounts` lookup succeeds. Write tools resolve a Page
+ * token before writing (T-26), so a bare `mockResolvedValue` hands the accounts
+ * lookup the write's own response and the Page is never found.
+ */
+function withPage(writeBody: unknown) {
+  return vi.fn(async (url: string) => {
+    if (new URL(url).pathname.endsWith("/me/accounts")) {
+      return ok({ data: [{ id: "pg1", access_token: "pt", tasks: ["MODERATE"] }] })
+    }
+    return ok(writeBody)
+  })
+}
+
+/**
  * Connects a client that either supports elicitation and answers as told, or
  * does not support it at all.
  */
@@ -53,12 +67,12 @@ async function connect(options: {
 
 describe("respond_to_comment confirmation", () => {
   it("publishes after the user accepts the elicitation", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ elicitation: "accept", fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBeFalsy()
@@ -67,12 +81,12 @@ describe("respond_to_comment confirmation", () => {
   })
 
   it("publishes nothing when the user declines", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ elicitation: "decline", fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -86,7 +100,7 @@ describe("respond_to_comment confirmation", () => {
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!", dryRun: true },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1", dryRun: true },
     })
 
     expect(result.isError).toBeFalsy()
@@ -101,7 +115,7 @@ describe("respond_to_comment confirmation", () => {
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -118,12 +132,12 @@ describe("respond_to_comment confirmation", () => {
   // announced it would "fire it with dryRun: false and confirmed: true". A
   // confirmation the model can grant itself is not a confirmation.
   it("refuses to publish when the client cannot elicit, even if asked to confirm", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!", confirmed: true },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1", confirmed: true },
     })
 
     expect(result.isError).toBe(true)
@@ -134,12 +148,12 @@ describe("respond_to_comment confirmation", () => {
   // The escape hatch for automation lives in the environment, which a person
   // sets and a model cannot reach — the whole point of moving it there.
   it("publishes without a prompt only when the operator set the environment override", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ fetchImpl, allowUnconfirmedWrites: true })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBeFalsy()
@@ -151,12 +165,12 @@ describe("respond_to_comment confirmation", () => {
     // "cancel" is not "decline" on the wire — a client sends it when the user
     // dismisses the dialog rather than answering it. Anything but an explicit
     // yes is a refusal.
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ elicitReply: { action: "cancel" }, fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -165,12 +179,12 @@ describe("respond_to_comment confirmation", () => {
   })
 
   it("publishes nothing when an accept carries no confirm at all", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({ elicitReply: { action: "accept", content: {} }, fetchImpl })
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -179,7 +193,7 @@ describe("respond_to_comment confirmation", () => {
   })
 
   it("publishes nothing when an accept carries confirm: false", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({
       elicitReply: { action: "accept", content: { confirm: false } },
       fetchImpl,
@@ -187,7 +201,7 @@ describe("respond_to_comment confirmation", () => {
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -198,7 +212,7 @@ describe("respond_to_comment confirmation", () => {
   it("publishes nothing when confirm is a truthy non-boolean", async () => {
     // A string "yes" or the number 1 is not consent this server can read.
     // Anything less than `=== true` must not open the gate.
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ id: "c1_r1" }))
+    const fetchImpl = withPage({ id: "c1_r1" })
     const client = await connect({
       elicitReply: { action: "accept", content: { confirm: "yes" } },
       fetchImpl,
@@ -206,7 +220,7 @@ describe("respond_to_comment confirmation", () => {
 
     const result = await client.callTool({
       name: "respond_to_comment",
-      arguments: { commentId: "c1", message: "Thanks!" },
+      arguments: { commentId: "c1", message: "Thanks!", pageId: "pg1" },
     })
 
     expect(result.isError).toBe(true)
@@ -215,12 +229,12 @@ describe("respond_to_comment confirmation", () => {
   })
 
   it("never asks for confirmation before hiding, which is reversible", async () => {
-    const fetchImpl = vi.fn().mockResolvedValue(ok({ success: true }))
+    const fetchImpl = withPage({ success: true })
     const client = await connect({ fetchImpl })
 
     const result = await client.callTool({
       name: "moderate_comment",
-      arguments: { commentId: "c1", action: "hide" },
+      arguments: { commentId: "c1", action: "hide", pageId: "pg1" },
     })
 
     expect(result.isError).toBeFalsy()

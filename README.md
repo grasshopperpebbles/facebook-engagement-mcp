@@ -388,7 +388,7 @@ not unpublish what people already saw.
 |---|---|---|---|
 | `commentId` | string, required | — | ID of the comment to reply to. |
 | `message` | string, required | — | Reply text, published publicly as the Page. |
-| `pageId` | string, optional | — | The Page that owns the comment. Supplying it gives clearer permission errors. |
+| `pageId` | string, **required** | — | The Page that owns the comment. The write is performed as the Page, which needs a Page token; this is what the server exchanges to get one. Without it the call would go out as the user, which Meta refuses. |
 | `dryRun` | boolean, optional | `false` | Reports what would be published without publishing it. |
 | `confirmed` | boolean, optional | `false` | Set `true` to confirm publishing on a client that cannot show a confirmation prompt. Review a `dryRun` first. |
 
@@ -425,7 +425,7 @@ one call with the opposite `action`. There is no delete.
 |---|---|---|---|
 | `commentId` | string, required | — | ID of the comment to hide or unhide. |
 | `action` | enum, required | — | `hide` or `unhide`. |
-| `pageId` | string, optional | — | The Page that owns the comment. Supplying it gives clearer permission errors. |
+| `pageId` | string, **required** | — | The Page that owns the comment. The write is performed as the Page, which needs a Page token; this is what the server exchanges to get one. Without it the call would go out as the user, which Meta refuses. |
 | `dryRun` | boolean, optional | `false` | Reports the intended change without making it. |
 
 ```json

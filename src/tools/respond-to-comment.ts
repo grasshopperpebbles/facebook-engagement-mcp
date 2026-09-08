@@ -10,8 +10,10 @@ export const inputSchema = {
   message: z.string().min(1).describe("Reply text. Published publicly as the Page."),
   pageId: z
     .string()
-    .optional()
-    .describe("Page that owns the comment. Supplying it gives clearer permission errors."),
+    .describe(
+      "Page that owns the comment. Required: a reply is published as the Page, which needs a " +
+        "Page token, and this is what the server exchanges to get one.",
+    ),
   dryRun: z
     .boolean()
     .default(false)
@@ -45,6 +47,19 @@ export async function runRespondToComment(
 > {
   const message = options.message.trim()
   if (message === "") return { error: "A reply needs a non-empty message." }
+
+  // Without a pageId this would fall through to the startup client, which holds
+  // the USER token — and Meta refuses a user-token comment write by naming
+  // `publish_actions`, dead since 2018. Refusing here costs one round trip and
+  // says the true thing; letting it through costs a day. Observed 2026-09-08.
+  if (options.pageId === undefined || options.pageId === "") {
+    return {
+      error:
+        "A reply is published as the Page, so it needs a Page token. Supply `pageId` for the " +
+        "Page that owns this comment. Without it the call would go out as the user, which Meta " +
+        "refuses with a message about `publish_actions` — a permission removed in 2018.",
+    }
+  }
 
   if (options.dryRun === true) {
     // Report the shape of the effect, never the text itself — the caller wrote

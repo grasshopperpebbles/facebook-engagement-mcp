@@ -14,8 +14,10 @@ export const inputSchema = {
     .describe("hide removes the comment from public view; unhide restores it."),
   pageId: z
     .string()
-    .optional()
-    .describe("Page that owns the comment. Supplying it gives clearer permission errors."),
+    .describe(
+      "Page that owns the comment. Required: hiding acts as the Page, which needs a Page " +
+        "token, and this is what the server exchanges to get one.",
+    ),
   dryRun: z.boolean().default(false).describe("Report the intended change without making it."),
 }
 
@@ -44,6 +46,19 @@ export async function runModerateComment(
   | { ok: true; commentId: string; action: ModerationAction; hidden: boolean }
   | { error: string }
 > {
+  // Same reason as respond_to_comment: without a pageId this falls through to the
+  // user-token client, and Meta refuses a user-token moderation write by naming
+  // `publish_actions`, dead since 2018. Checked before the dry run so a dry run
+  // does not report that a call would work when it could not.
+  if (options.pageId === undefined || options.pageId === "") {
+    return {
+      error:
+        "Hiding a comment acts as the Page, so it needs a Page token. Supply `pageId` for the " +
+        "Page that owns this comment. Without it the call would go out as the user, which Meta " +
+        "refuses with a message about `publish_actions` — a permission removed in 2018.",
+    }
+  }
+
   if (options.dryRun === true) {
     return { dryRun: true, intended: { commentId: options.commentId, action: options.action } }
   }

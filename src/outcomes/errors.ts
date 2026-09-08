@@ -44,6 +44,22 @@ export function explainGraphError(
   }
 
   if (error.code === 200 || error.status === 403) {
+    // Established live on 2026-09-08, after a day lost to reading this message
+    // literally. `publish_actions` was the permission for publishing AS A USER.
+    // It was removed in 2018, so a write carrying a USER token reaches a code
+    // path whose permission no longer exists and Graph names that permission.
+    // The message is true and useless: the fault is the identity, not the
+    // permission, and no amount of App Review can grant a dead scope.
+    if (/publish_actions/.test(error.message)) {
+      return (
+        "This write was sent with a user token instead of a Page token. Meta answers it by " +
+        "naming `publish_actions`, which was the permission for publishing as a user and was " +
+        "removed in 2018 — so the message describes a dead permission rather than the real " +
+        "fault, and App Review cannot grant it. Supply the `pageId` of the Page that owns the " +
+        "comment; the server exchanges it for a Page token, and the same call then succeeds. " +
+        `Meta's own words: "${error.message}"${trace}`
+      )
+    }
     const needsModerate = context.operation !== "read"
     if (needsModerate && context.tasks !== undefined && !context.tasks.includes("MODERATE")) {
       return (
