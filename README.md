@@ -8,6 +8,22 @@ and returns that instead of a raw comment array for a model to sort through.
 Replying and hiding are available behind an explicit flag. Deleting is not
 offered at all.
 
+## 📖 Documentation
+
+**Everything you need to get this working is in [`docs/`](./docs/).** Three
+articles, each written from work run against a live Meta app rather than read
+off Meta's documentation — which matters here, because two of them exist
+precisely to correct it.
+
+| | |
+|---|---|
+| **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** | **Start here.** Creating the Meta app, the three-token chain, the `MODERATE` role. This is how you get the token this server needs — you cannot run it without one, and producing it is a job in itself. |
+| **[Dark posts: why `/feed` misses your ads](./docs/dark-posts.md)** | Why no Page-level sweep reaches a comment on an ad, and the route that does. Read this before deciding this tool doesn't work. |
+| **[The `publish_actions` error](./docs/publish-actions-error.md)** | A write refused, naming a permission removed in 2018. It is not about permissions. |
+
+New here? [Setup, tokens and permissions](./docs/setup-tokens-permissions.md),
+then [Install and configure](#install-and-configure).
+
 > **On ad comments — how this actually works.**
 > Ads run on **unpublished** posts. Meta's documentation says
 > `/{page-id}/feed` returns those where `/posts` does not; tested on
@@ -83,9 +99,10 @@ is marked `sensitive` so it is masked on entry, and a **checkbox for replying
 and hiding**, off by default.
 
 **Somebody has to produce that token first, and it will not be the person
-installing the bundle.** See [Getting a token](#getting-a-token) — it is
-developer work, it needs a Meta app and an app secret, and it has to be redone
-every 60 days.
+installing the bundle.** It is developer work: a Meta app, an app secret, and a
+token chain, redone every 60 days. The full walkthrough is
+**[docs/setup-tokens-permissions.md](./docs/setup-tokens-permissions.md)**; the
+short version is under [Getting a token](#getting-a-token).
 
 Build the bundle:
 
