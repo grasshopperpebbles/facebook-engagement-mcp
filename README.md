@@ -497,6 +497,26 @@ that arithmetic is the argument for looking at a Business Manager **System
 User** token, which is issued from Business settings and is not on the 60-day
 clock.
 
+### User token or Page token
+
+`META_ACCESS_TOKEN` is a **user** token, and the server derives Page tokens from
+it. Both are in play on a single call, which is worth knowing before you debug
+one:
+
+| What the server does | Token it uses | Scope |
+|---|---|---|
+| List Pages (`/me/accounts`) | user | `pages_show_list` |
+| List ad accounts and campaigns; resolve an ad to its post | **user** | `ads_read` |
+| Read comments on a post | **Page** | `pages_read_user_content`, plus the Page role |
+| Reply, hide | **Page** | `pages_manage_engagement`, plus `MODERATE` |
+
+So an `ad` target uses **both**: the user token resolves the ad through the
+Marketing API, which knows nothing about Pages, and the Page token then reads
+the comments on the post that came back. `ads_read` on a Page token would be
+meaningless, and so would `pages_show_list` — which is why the Graph API
+Explorer shows a different permission list when you switch from your user to a
+Page. Nothing changed; you are looking at a different token.
+
 `META_ACCESS_TOKEN` is a **user** token. The server exchanges it for a
 per-Page token via `GET /me/accounts` and uses that Page token for every
 comment read, reply, and moderation call. This is not an optimization: per
