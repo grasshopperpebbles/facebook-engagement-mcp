@@ -453,6 +453,57 @@ to a note rather than an error without it. If you never pass
 one, omit it — a token that cannot read your ad account is a smaller thing to
 hand out. It is also a separate App Review item.
 
+### Set up your own Meta app
+
+**You run your own Meta app.** This package ships no credentials and is not tied
+to anyone's app; you create one, grant it permissions on Pages you administer,
+and mint your own token. Nothing here talks to anyone else's infrastructure.
+
+Once, taking maybe twenty minutes:
+
+1. **Create an app** at [developers.facebook.com](https://developers.facebook.com/)
+   and add **Facebook Login for Business**. Meta rejects `Facebook`, `Meta`,
+   `Insta`, `FB` and near-variants in app names — name it for the job instead.
+2. **Add the Pages use case**, then add its permissions *explicitly*. Selecting a
+   use case does not grant what is inside it, and this trips up nearly everyone:
+   `pages_show_list`, `pages_read_engagement`, `pages_read_user_content`, and
+   `pages_manage_engagement` if you want replying and hiding.
+3. **For ad comments, add a second use case**: *Add Use Case → Ads and
+   monetization → **Measure ad performance data with Marketing API***. That is
+   the read-only one, and it carries **`ads_read`**. Its read/write sibling
+   (*Create & manage ads*) carries `ads_management`, which this server never
+   uses. `ads_read` will not appear anywhere in the Pages use case, however far
+   you scroll.
+4. **Check the Page is actually reachable.** In the Graph API Explorer, with a
+   user token: `GET /me/accounts?fields=id,name,tasks`. If your Page is missing,
+   re-authorise before hunting for an ownership problem — "opt in to all current
+   and future Pages" describes the option, not the grant, so a Page added later
+   is not included. Choose *Uninstall the app* in the Explorer's token dropdown,
+   then generate a token again.
+5. **Mint a token, then exchange it.** A token from the Explorer lasts about an
+   hour. Exchange it for the ~60-day one:
+
+   ```bash
+   curl -s "https://graph.facebook.com/v25.0/oauth/access_token\
+   ?grant_type=fb_exchange_token&client_id=$APP_ID\
+   &client_secret=$APP_SECRET&fb_exchange_token=$SHORT_LIVED_TOKEN"
+   ```
+
+   That long-lived **user** token is what `META_ACCESS_TOKEN` wants. The server
+   exchanges it for Page tokens itself.
+6. **Verify what you actually got**, because the dashboard lies and the token
+   does not: `GET /debug_token?input_token=…&access_token=$APP_ID|$APP_SECRET`,
+   or **Tools → Access Token Debugger**. Check `ads_read` is in `scopes` if you
+   added it — a token minted before you added a permission does not carry it.
+   For replying and hiding, check `tasks` includes `MODERATE` for your Page;
+   that is a Page role in Business settings, not an app permission.
+
+**Development mode is enough to run this on Pages you administer.** Going beyond
+that — a client's Page you do not hold a role on — needs Meta's App Review for
+`pages_read_user_content` and `pages_manage_engagement`, with `ads_read` as a
+separate item. That is between you and Meta; nothing about it involves this
+package.
+
 ### Getting a token
 
 This README says what a token must *be*. It does not say how to make one,
