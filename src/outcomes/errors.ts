@@ -2,6 +2,7 @@ import { MetaApiError } from "../vendor/meta-client/index.js"
 
 const PERMISSION_BY_OPERATION: Record<string, string> = {
   read: "pages_read_engagement and pages_read_user_content",
+  "ad read": "ads_read",
   reply: "pages_manage_engagement",
   moderate: "pages_manage_engagement",
 }

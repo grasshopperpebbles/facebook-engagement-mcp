@@ -11,8 +11,8 @@ export const inputSchema = {
     .describe(
       "Page ID. Sweeps the Page's published posts. This does NOT reach comments on " +
         "ads: they usually run on unpublished posts, which no Page-level sweep returns " +
-        "— pass an ad or campaign ID for those. Omit every target to list the Pages " +
-        "this identity can reach.",
+        "— pass an ad or campaign ID for those. Omit every target to list the Pages and " +
+        "ad accounts this identity can reach.",
     ),
   post: z
     .string()
@@ -27,6 +27,14 @@ export const inputSchema = {
     .string()
     .optional()
     .describe("Campaign ID. Reads comments across every Page post behind the campaign's ads."),
+  adAccount: z
+    .string()
+    .optional()
+    .describe(
+      "Ad account ID (act_…). Lists that account's campaigns by name and status and reads " +
+        "no comments. Use it when you know an ad by name but not by id: list the campaigns, " +
+        "then pass the one you want as `campaign`.",
+    ),
   filter: z
     .enum(FILTERS)
     .default("needs_reply")
@@ -52,7 +60,10 @@ export const description =
   "group. Comment text is returned as untrusted third-party content. " +
   "For comments on ADS, pass an ad or campaign ID rather than a page ID: ads " +
   "usually run on unpublished posts, and no Page-level sweep returns those — " +
-  "resolving the ad to the post behind it is the only way to reach them."
+  "resolving the ad to the post behind it is the only way to reach them. " +
+  "When you do not know an id, walk down: omit every target to list Pages and ad " +
+  "accounts, pass an `adAccount` to list its campaigns by name, then pass the " +
+  "campaign you want. The first two rungs read no comments and are cheap."
 
 export type { CommentActivity, RunOptions } from "../outcomes/activity.js"
 export { runCommentActivity } from "../outcomes/activity.js"
