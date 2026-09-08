@@ -88,3 +88,22 @@ matches the docs — not that it matches Graph. In particular these are guesses:
 Whoever first runs this against a real ad account (**T-02**) should replace
 these fixtures with the real shapes and rewrite this section with what was
 found — as a reversal, not an edit.
+
+### Partly validated, 2026-09-08
+
+`ads_read` was granted and `/me/adaccounts` called against live Graph for the
+first time. What that settled, and what it did not:
+
+- **`/me/adaccounts` shape is confirmed.** One account came back as
+  `{"id": "act_<digits>", "name": "<display name>"}` — both guesses above hold,
+  and `ad-accounts.json` matches what Graph returns.
+- **`/{account}/campaigns` is still unvalidated.** The account has no campaigns,
+  so the edge answered `{"data": []}` and showed nothing of a campaign's shape.
+  `effective_status`, and whether `CAMPAIGN_PAUSED` is a value it takes, remain
+  guesses.
+- **An empty edge carries no `paging` key at all** — not even `cursors`. The
+  Pages section above says every live response carries `paging.cursors`; that is
+  true of the Pages edges observed, and not true of an empty campaigns edge.
+  Behaviour is unaffected, since the transport keys off `paging.next`, which is
+  absent either way — but a fixture asserting `cursors` on an empty list would
+  be asserting something Graph does not send.
