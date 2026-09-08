@@ -469,6 +469,18 @@ long-lived user token    (~60 days)  ← this is what META_ACCESS_TOKEN wants
 Page access token        (does not expire, if derived from a long-lived one)
 ```
 
+**`ads_read` comes from a second use case, not the Pages one.** It is what
+resolves an ad to the post behind it, so without it the `ad`, `campaign` and
+`adAccount` targets fail at the first hop while everything else keeps working.
+Confirmed on screen 2026-09-08: App Dashboard → **Add Use Case** → *Ads and
+monetization* → **Measure ad performance data with Marketing API** (the
+read-only one; its sibling carries `ads_management`, which can create and pause
+campaigns and is more than this server needs). Both use cases coexist on one
+app, and `ads_read` arrives at *Ready for testing* — development mode, no App
+Review, same as the Pages permissions. A token minted before you added it does
+not gain the scope; re-mint from **Tools → Graph API Explorer** and check the
+result in **Tools → Access Token Debugger**.
+
 **Skip the middle step and your token dies within the hour.** A token pasted
 straight out of the Graph API Explorer works beautifully until lunchtime. That
 has already cost this project a day: a session opened with a token minted the
