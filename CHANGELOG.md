@@ -18,7 +18,7 @@ Initial release. Not published to npm.
 - A `TokenProvider` seam exchanging a user token for per-Page tokens.
 - Structured logging to stderr on a field allow-list; comment bodies are never
   logged.
-- The Meta Graph client, vendored from the gpp-mcp monorepo by
+- The Meta Graph client, vendored from the (private) gpp-mcp monorepo by
   `scripts/extract.mjs`.
 
 ### Not included

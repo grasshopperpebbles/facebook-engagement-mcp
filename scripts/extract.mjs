@@ -2,6 +2,9 @@
 /**
  * Vendor the Meta Graph client from a gpp-mcp checkout.
  *
+ * Maintainer tooling. gpp-mcp is a private monorepo; you do not need it to use
+ * this package, because the vendored client under src/vendor/ is complete.
+ *
  * This copies the client only. The server layer above it is hand-ported and
  * owned by this repository — see the design spec §4 for why.
  *

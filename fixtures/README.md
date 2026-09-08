@@ -58,8 +58,9 @@ or `campaign` target and so could not obtain such a post id on its own. That
 stopped being true on 2026-09-03, when those targets were restored here
 (`15df052`) after `/feed` turned out not to reach ad comments. This package
 vendors the Marketing surface and resolves ads itself. The route is still
-unverified against a real ad either here or upstream — that is **T-02**, not a
-difference between the two packages.
+unverified against a real ad either here or upstream — a gap in testing, not a
+difference between the two packages. (It was closed on 2026-09-08; see
+"Validated live" below.)
 
 **Not settled: pagination.** Every live response fitted in one page, so
 `paging.next` and the truncation path have still only been exercised against
@@ -85,9 +86,9 @@ matches the docs — not that it matches Graph. In particular these are guesses:
   and that the effective value is the one worth showing,
 - that `CAMPAIGN_PAUSED` is a value `effective_status` actually takes.
 
-Whoever first runs this against a real ad account (**T-02**) should replace
-these fixtures with the real shapes and rewrite this section with what was
-found — as a reversal, not an edit.
+**All three were answered on 2026-09-08 — see "Validated live" below.** Two held
+and one did not. This section is kept as written rather than edited, because what
+was guessed is part of the record.
 
 ### Validated live, 2026-09-08
 
