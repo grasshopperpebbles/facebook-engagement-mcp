@@ -66,6 +66,11 @@ The two fields are the ones under `user_config` in
 is marked `sensitive` so it is masked on entry, and a **checkbox for replying
 and hiding**, off by default.
 
+**Somebody has to produce that token first, and it will not be the person
+installing the bundle.** See [Getting a token](#getting-a-token) — it is
+developer work, it needs a Meta app and an app secret, and it has to be redone
+every 60 days.
+
 Build the bundle:
 
 ```bash
@@ -434,6 +439,51 @@ than `ok: true`, because nothing actually changed.
 to a note rather than an error without it. If you never pass
 one, omit it — a token that cannot read your ad account is a smaller thing to
 hand out. It is also a separate App Review item.
+
+### Getting a token
+
+This README says what a token must *be*. It does not say how to make one,
+because that is a Meta app setup rather than a property of this server, and it
+is written up in full elsewhere: **"Reading Facebook Page Comments with the
+Graph API: App Setup, Tokens, and Permissions"** — app creation, the token
+chain, verifying the scopes you actually got, and the `MODERATE` check, each
+step walked against a live Page rather than read off the documentation. It ships
+with three runnable scripts, including one that does the `/me/accounts` exchange
+and flags any Page missing `MODERATE`.
+
+**That article is not published yet** (it is `status: review-ready`), so there
+is no URL to link. It lives in the `broadkast` repo at
+`docs/my social media posts/.../grasshopperpebbles articles/facebook-engagement-mcp-setup/`.
+A link belongs here the day it goes live — and until then, deliberately no link
+rather than a plausible-looking one that 404s.
+
+The shape of it, so you know what you are in for:
+
+```text
+short-lived user token   (~1 hour, from the Graph API Explorer)
+        │  ← the only step that uses your App ID and App Secret
+        ▼
+long-lived user token    (~60 days)  ← this is what META_ACCESS_TOKEN wants
+        │  ← the server does this step itself, via /me/accounts
+        ▼
+Page access token        (does not expire, if derived from a long-lived one)
+```
+
+**Skip the middle step and your token dies within the hour.** A token pasted
+straight out of the Graph API Explorer works beautifully until lunchtime. That
+has already cost this project a day: a session opened with a token minted the
+previous afternoon and found it had expired nineteen hours earlier.
+
+**Whoever sets this up mints the token — not the person using it.** That is the
+part worth being explicit about, because the `.mcpb` install screen asks for a
+token as if the person installing it would have one, and they will not. Creating
+a Meta app, adding permissions, and running a `curl` with an app secret is
+developer work. The realistic division is that you do all of it and hand over a
+string — **and do it again every 60 days**, for each person, because the token is
+per-user and the expiry is not negotiable. With more than a handful of people
+that arithmetic is the argument for looking at a Business Manager **System
+User** token, which is issued from Business settings and is not on the 60-day
+clock.
 
 `META_ACCESS_TOKEN` is a **user** token. The server exchanges it for a
 per-Page token via `GET /me/accounts` and uses that Page token for every
