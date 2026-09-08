@@ -3,9 +3,17 @@
   "version": "0.1.0",
   "description": "MCP server for Facebook Page comment triage, including comments on unpublished ad-backed posts.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grasshopperpebbles/facebook-engagement-mcp.git"
+  },
+  "homepage": "https://github.com/grasshopperpebbles/facebook-engagement-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/grasshopperpebbles/facebook-engagement-mcp/issues"
+  },
   "type": "module",
   "bin": {
-    "facebook-engagement-mcp": "./dist/index.js"
+    "facebook-engagement-mcp": "dist/index.js"
   },
   "exports": {
     ".": {
