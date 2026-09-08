@@ -18,7 +18,8 @@
       "args": ["${__dirname}/server/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "${user_config.meta_access_token}",
-        "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "${user_config.enable_writes}"
+        "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "${user_config.enable_writes}",
+        "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES": "${user_config.trust_client_approval}"
       }
     }
   },
@@ -33,7 +34,14 @@
     "enable_writes": {
       "type": "boolean",
       "title": "Allow replying and hiding comments",
-      "description": "Off by default. When on, Claude can publish replies publicly as the Page and hide comments. Your client asks you to approve each call \u2014 in Claude Desktop these appear under Write/delete tools. Publishing also needs a confirmation prompt: on a client that cannot show one, the server refuses to publish rather than taking the model's word for it.",
+      "description": "Off by default. When on, Claude can publish replies publicly as the Page and hide comments. Publishing also needs the confirmation setting below \u2014 on its own, this switch adds the tools without letting them publish.",
+      "default": false,
+      "required": false
+    },
+    "trust_client_approval": {
+      "type": "boolean",
+      "title": "Let my client's approval count as confirmation",
+      "description": "Needed to publish replies from Claude Desktop, which cannot display this server's own confirmation prompt. With this on, the approval you already give \u2014 \"Claude wants to use Respond to comment\" \u2014 is the confirmation. Leave it off and replies are refused rather than published. Only turn it on if your client asks you before every tool call, and be aware that choosing \"Always allow\" there removes the last thing that asks.",
       "default": false,
       "required": false
     }

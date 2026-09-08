@@ -48,14 +48,7 @@ function environmentRead(source: string): Set<string> {
  * NOT pass, with the reason. A bundle is installed by the person least equipped
  * to judge the consequence, so anything dangerous stays out of the install form.
  */
-const DELIBERATELY_NOT_IN_MANIFEST = new Map([
-  [
-    "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES",
-    "Publishing without a confirmation prompt. Claude Desktop cannot elicit, so a checkbox " +
-      "here would make every reply publish silently — handing the bypass to exactly the " +
-      "audience this bundle exists for. Set it in a shell if you are automating deliberately.",
-  ],
-])
+const DELIBERATELY_NOT_IN_MANIFEST = new Map<string, string>()
 
 describe("mcpb manifest", () => {
   it("passes every environment variable the server reads, minus the deliberate omissions", () => {
@@ -70,6 +63,22 @@ describe("mcpb manifest", () => {
     for (const name of DELIBERATELY_NOT_IN_MANIFEST.keys()) {
       expect(JSON.stringify(manifest)).not.toContain(name)
     }
+  })
+
+  // Reversal, 2026-09-08. This override was deliberately kept out of the
+  // manifest earlier the same day, on the reasoning that a checkbox would let a
+  // non-technical operator turn off confirmation. That reasoning was wrong about
+  // the client it ships to: Claude Desktop cannot show the server's prompt at
+  // all, so withholding the field did not add a safeguard — it made publishing
+  // impossible. The property that mattered was never "hard to switch on", it was
+  // "a model cannot switch it on", and a config field a person ticks keeps that.
+  it("offers the confirmation override as its own field, off by default", () => {
+    const key = manifest.server.mcp_config.env[
+      "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES"
+    ]?.match(/\$\{user_config\.([^}]+)\}/)?.[1]
+
+    expect(key).toBeDefined()
+    expect(manifest.user_config[key ?? ""]).toMatchObject({ type: "boolean", default: false })
   })
 
   it("resolves every ${user_config.x} to a declared field", () => {
