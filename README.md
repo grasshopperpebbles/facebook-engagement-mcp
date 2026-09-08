@@ -86,15 +86,28 @@ artifact. `mcpb:verify` unzips the real bundle, launches the entry point by the
 exact path `mcp_config` names, and speaks MCP to it — with writes off and on,
 checking the right tools register each way. Packing is not evidence.
 
-Two things about this route are **not yet verified**, and both are claims about
-someone else's software:
+**Both of those were unverified when this shipped; both were checked on
+2026-09-08 by installing the bundle:**
 
-- **Where Claude Desktop puts a `sensitive` value.** The manifest spec says
-  "mask input and store securely" and does not say where. Nobody should be told
-  their Facebook token is safe on the strength of that sentence.
-- **How a `boolean` field substitutes into an environment variable.** The
-  server enables writes on exactly the string `true`. If a checkbox arrives as
-  anything else, writes stay off — the safe direction, but silently.
+- **A `sensitive` value is encrypted at rest.** It lands in `~/Library/Application
+  Support/Claude/Claude Extensions Settings/<extension-id>.json`, mode `0600`,
+  stored as `"__encrypted__:…"` — the raw token does not appear in the file. No
+  keychain entry is created, so this is not `safeStorage`; where the key lives is
+  a further question, but the token is not sitting in a readable file.
+- **A `boolean` reaches the server correctly.** Writes off registers one tool;
+  writes on registers three.
+
+**What the install does show your user**, and it is worth warning them about:
+a red banner reading *"Installing will grant this extension access to everything
+on your computer. Any developer information shown has not been verified by
+Anthropic."* That is true of every unsigned local extension. It is not
+Gatekeeper, but it is the same moment of doubt, and someone non-technical will
+stop there unless you have told them it is coming.
+
+**A detail worth knowing:** Claude Desktop groups the tools by the annotations
+the server declares — *Read-only tools* and *Write/delete tools*, each defaulting
+to "Needs approval". The `readOnlyHint` and `destructiveHint` annotations are
+load-bearing UI here, not documentation.
 
 And the honest caveat about what is inside: the ad path this bundle exists to
 deliver **has never run against a real ad**. Do not hand this to a client
