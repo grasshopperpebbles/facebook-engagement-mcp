@@ -14,7 +14,7 @@
       "id": "cmp2",
       "name": "Weekend Brunch",
       "status": "PAUSED",
-      "effective_status": "CAMPAIGN_PAUSED",
+      "effective_status": "PAUSED",
       "objective": "OUTCOME_ENGAGEMENT",
       "start_time": "2026-06-14T00:00:00+0000",
       "stop_time": "2026-07-14T00:00:00+0000",

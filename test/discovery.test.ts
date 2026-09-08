@@ -82,7 +82,7 @@ describe("adAccount target", () => {
     expect(result).toMatchObject({
       campaigns: [
         { id: "cmp1", name: "Spring Menu", status: "ACTIVE" },
-        { id: "cmp2", name: "Weekend Brunch", status: "CAMPAIGN_PAUSED" },
+        { id: "cmp2", name: "Weekend Brunch", status: "PAUSED" },
       ],
     })
   })

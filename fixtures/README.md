@@ -89,21 +89,28 @@ Whoever first runs this against a real ad account (**T-02**) should replace
 these fixtures with the real shapes and rewrite this section with what was
 found — as a reversal, not an edit.
 
-### Partly validated, 2026-09-08
+### Validated live, 2026-09-08
 
-`ads_read` was granted and `/me/adaccounts` called against live Graph for the
-first time. What that settled, and what it did not:
+The Marketing fixtures above are no longer guesses. A paused campaign and a
+paused ad were built on a real ad account, an unpublished photo post was created
+on a real Page, and the whole chain — `ad` → creative →
+`effective_object_story_id` → post → `/comments` — was run through the server.
 
-- **`/me/adaccounts` shape is confirmed.** One account came back as
-  `{"id": "act_<digits>", "name": "<display name>"}` — both guesses above hold,
-  and `ad-accounts.json` matches what Graph returns.
-- **`/{account}/campaigns` is still unvalidated.** The account has no campaigns,
-  so the edge answered `{"data": []}` and showed nothing of a campaign's shape.
-  `effective_status`, and whether `CAMPAIGN_PAUSED` is a value it takes, remain
-  guesses.
-- **An empty edge carries no `paging` key at all** — not even `cursors`. The
-  Pages section above says every live response carries `paging.cursors`; that is
-  true of the Pages edges observed, and not true of an empty campaigns edge.
-  Behaviour is unaffected, since the transport keys off `paging.next`, which is
-  absent either way — but a fixture asserting `cursors` on an empty list would
-  be asserting something Graph does not send.
+- **`/me/adaccounts` matches `ad-accounts.json`**: `{"id": "act_<digits>",
+  "name": "<display name>"}`.
+- **`/{account}/campaigns` returns `effective_status`**, as guessed.
+- **Corrected:** a paused campaign's `effective_status` is **`PAUSED`**, not
+  `CAMPAIGN_PAUSED`. That value was invented when the fixture was written and
+  never existed; `campaigns.json` now carries the real one.
+- **An empty edge carries no `paging` key at all** — not even `cursors`. True of
+  an empty campaigns edge; the Pages section's claim above describes the Pages
+  edges, which were non-empty. Behaviour is unaffected, since the transport keys
+  off `paging.next`.
+- **A comment on a dark post carries `from`**, and for a comment the Page itself
+  wrote, `from.id` is the Page id. `can_hide` is `false` on it. Both were
+  assumptions; both hold.
+
+**Still not exercised:** a comment from someone other than the Page (the only
+comment on the test post was authored by the Page, so `needs_reply` triage
+against a visitor's comment is still fixture-only), `comments.replies()` against
+a thread that has replies, and pagination.
