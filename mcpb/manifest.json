@@ -4,7 +4,7 @@
   "display_name": "Facebook Page Comments",
   "version": "0.1.0",
   "description": "Find and group the comments on a Facebook Page's posts and ads, including comments on the unpublished posts ads run on.",
-  "long_description": "Answers \"what are people saying on our Page, and does any of it need a reply\" \u2014 including on ads.\n\nAds usually run on **unpublished** posts, and no Page-level sweep returns those, so most tools cannot see ad comments at all. This one resolves an ad or campaign to the post behind it and reads the comments there.\n\nYou do not need to know an ad's ID. Ask what is running and it will list your ad accounts, then the campaigns in one, by name.\n\n**Replying and hiding are off unless you switch them on.** With them on, your client asks you to approve each call \u2014 in Claude Desktop these appear under Write/delete tools, needing approval. There is no delete, deliberately: hiding is reversible, deletion is not, and it destroys something a member of the public wrote.",
+  "long_description": "Answers \"what are people saying on our Page, and does any of it need a reply\" \u2014 including on ads.\n\nAds usually run on **unpublished** posts, and no Page-level sweep returns those, so most tools cannot see ad comments at all. This one resolves an ad or campaign to the post behind it and reads the comments there.\n\nYou do not need to know an ad's ID. Ask what is running and it will list your ad accounts, then the campaigns in one, by name.\n\n**Replying and hiding are off unless you switch them on.** With them on, your client asks you to approve each call, and publishing needs a confirmation prompt on top of that \u2014 where a client cannot show one, the reply is refused rather than published. There is no delete, deliberately: hiding is reversible, deletion is not, and it destroys something a member of the public wrote.",
   "author": {
     "name": "Grasshopper Pebbles"
   },
@@ -33,7 +33,7 @@
     "enable_writes": {
       "type": "boolean",
       "title": "Allow replying and hiding comments",
-      "description": "Off by default. When on, Claude can publish replies publicly as the Page and hide comments. Your client is what asks you to approve each call \u2014 Claude Desktop lists these under Write/delete tools with approval required. On a client that never asks, the server cannot add a prompt of its own, so only turn this on where you trust the approval step.",
+      "description": "Off by default. When on, Claude can publish replies publicly as the Page and hide comments. Your client asks you to approve each call \u2014 in Claude Desktop these appear under Write/delete tools. Publishing also needs a confirmation prompt: on a client that cannot show one, the server refuses to publish rather than taking the model's word for it.",
       "default": false,
       "required": false
     }
@@ -45,7 +45,7 @@
     },
     {
       "name": "respond_to_comment",
-      "description": "Publishes a public reply as the Page. Registered only when replying is switched on. Asks for confirmation where the client supports it; where it does not, the call proceeds on a flag the model sets, so the client's own approval step is what protects you."
+      "description": "Publishes a public reply as the Page. Registered only when replying is switched on. Asks for confirmation through the client; on a client that cannot show a confirmation prompt it refuses to publish."
     },
     {
       "name": "moderate_comment",
