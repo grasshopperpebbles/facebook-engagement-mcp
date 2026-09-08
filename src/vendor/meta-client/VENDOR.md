@@ -6,8 +6,8 @@ upstream in gpp-mcp, followed by `npm run extract`.
 | | |
 |---|---|
 | Source | `grasshopperpebbles/gpp-mcp` |
-| Commit | `edcf90ef6a07b46130ad42ca241164499a32f322` |
-| Extracted | 2026-09-03 |
+| Commit | `fe05f4b86acfbe8df53a38567fd38883bbcfb1b2` |
+| Extracted | 2026-09-08 |
 
 Copied: constants.ts, http.ts, errors.ts, types.ts, index.ts, pages/ and 7 test files.
 

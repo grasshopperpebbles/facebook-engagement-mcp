@@ -146,12 +146,36 @@ export function createTransport(options: TransportOptions): Transport {
     throw lastError
   }
 
+  /**
+   * The next page's URL, or undefined when there is none.
+   *
+   * `paging.next` is a URL taken out of a response body and then followed with
+   * the access token attached, so whoever that URL names receives the
+   * credential. Meta is trusted and a comment author cannot influence it, which
+   * is why this has never been a live hole — but the blast radius if that ever
+   * stopped being true is the token itself, and the check is cheaper than the
+   * argument about whether it is needed.
+   */
+  function nextPageUrl(body: GraphListResponse): string | undefined {
+    const next = body.paging?.next
+    if (next === undefined) return undefined
+    if (new URL(next).origin !== new URL(GRAPH_API_HOST).origin) {
+      throw new MetaApiError({
+        message:
+          `Refusing to follow paging.next to a different origin (${new URL(next).origin}). ` +
+          "The access token is only ever sent to the Graph API host.",
+        status: 0,
+      })
+    }
+    return next
+  }
+
   async function* pages(first: string): AsyncGenerator<GraphListResponse> {
     let url: string | undefined = first
     for (let page = 0; page < maxPages && url; page += 1) {
       const body: GraphListResponse = await request(url)
       yield body
-      url = body.paging?.next
+      url = nextPageUrl(body)
     }
   }
 

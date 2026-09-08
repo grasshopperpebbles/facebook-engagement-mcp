@@ -77,3 +77,32 @@ describe("pagination", () => {
     expect(await createTransport({ accessToken: "t", fetchImpl }).getAll("/x")).toEqual([])
   })
 })
+
+describe("paging.next origin", () => {
+  // `paging.next` is a URL taken from a response body and followed with the
+  // access token attached. Meta is trusted, so this is defence in depth rather
+  // than a live hole — but the cost of being wrong is handing the credential to
+  // whoever the URL names, and the check is two lines.
+  it("refuses to follow paging.next to another origin", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ id: "1" }], "https://evil.example.com/steal"))
+
+    const transport = createTransport({ accessToken: "t", fetchImpl })
+
+    await expect(transport.getAll("/act_1/campaigns")).rejects.toThrow(/origin/i)
+    // The offending request must never be made.
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it("still follows paging.next on the Graph host", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ id: "1" }], "https://graph.facebook.com/v25.0/next"))
+      .mockResolvedValueOnce(page([{ id: "2" }]))
+
+    const all = await createTransport({ accessToken: "t", fetchImpl }).getAll("/act_1/campaigns")
+
+    expect(all).toHaveLength(2)
+  })
+})

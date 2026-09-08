@@ -54,7 +54,9 @@ describe("getAll never returns a silently short list", () => {
   // "All" that quietly gives you some is the defect this client was written to
   // avoid — the Python reference dropped paging.next the same way.
   it("throws when the page cap truncates the result", async () => {
-    const fetchImpl = vi.fn().mockImplementation(() => page([{ id: "x" }], "https://g/next"))
+    const fetchImpl = vi
+      .fn()
+      .mockImplementation(() => page([{ id: "x" }], "https://graph.facebook.com/v25.0/next"))
     const transport = createTransport({ accessToken: "t", fetchImpl, maxPages: 3 })
 
     await expect(transport.getAll("/x")).rejects.toThrowError(
@@ -77,7 +79,9 @@ describe("getAll never returns a silently short list", () => {
   })
 
   it("getPage still reports truncation without throwing", async () => {
-    const fetchImpl = vi.fn().mockImplementation(() => page([{ id: "x" }], "https://g/next"))
+    const fetchImpl = vi
+      .fn()
+      .mockImplementation(() => page([{ id: "x" }], "https://graph.facebook.com/v25.0/next"))
     const { truncated } = await createTransport({
       accessToken: "t",
       fetchImpl,
