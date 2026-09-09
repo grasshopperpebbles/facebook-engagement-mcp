@@ -17,11 +17,12 @@ precisely to correct it.
 
 | | |
 |---|---|
-| **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** | **Start here.** Creating the Meta app, the three-token chain, the `MODERATE` role. This is how you get the token this server needs — you cannot run it without one, and producing it is a job in itself. |
+| **[Get your Meta access token](./docs/get-your-token.md)** | **Start here.** Five steps, about fifteen minutes, no code — the short path to the one thing the installer asks you for. |
+| **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** | The full reference behind that page. Creating the Meta app, the three-token chain, the `MODERATE` role. This is how you get the token this server needs — you cannot run it without one, and producing it is a job in itself. |
 | **[Dark posts: why `/feed` misses your ads](./docs/dark-posts.md)** | Why no Page-level sweep reaches a comment on an ad, and the route that does. Read this before deciding this tool doesn't work. |
 | **[The `publish_actions` error](./docs/publish-actions-error.md)** | A write refused, naming a permission removed in 2018. It is not about permissions. |
 
-New here? [Setup, tokens and permissions](./docs/setup-tokens-permissions.md),
+New here? [Get your Meta access token](./docs/get-your-token.md),
 then [Install and configure](#install-and-configure).
 
 > **On ad comments — how this actually works.**
