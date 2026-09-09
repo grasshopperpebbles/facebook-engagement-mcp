@@ -111,7 +111,13 @@ on a real Page, and the whole chain — `ad` → creative →
   wrote, `from.id` is the Page id. `can_hide` is `false` on it. Both were
   assumptions; both hold.
 
-**Still not exercised:** a comment from someone other than the Page (the only
-comment on the test post was authored by the Page, so `needs_reply` triage
-against a visitor's comment is still fixture-only), `comments.replies()` against
-a thread that has replies, and pagination.
+**Superseded hours later, same day.** The line above was written from the T-02 ad
+run, whose only comment was Page-authored. **T-23 then triaged a comment written
+by someone other than the Page**, live, through the installed bundle: the server
+rendered a third-party author name, which it can only do if Graph returned
+`from`, so `statusBasis` was `author_identity` and the `needs_reply` branch —
+the product's central verb — ran against a real visitor's comment. Visitor
+triage is no longer fixture-only.
+
+**Still not exercised:** `comments.replies()` against a thread that has replies
+(T-11), and pagination (T-07).
