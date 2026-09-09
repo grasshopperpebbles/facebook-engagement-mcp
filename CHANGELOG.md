@@ -2,6 +2,19 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.2] — 2026-09-09
+
+### Changed
+
+- `support` now points at the setup guide rather than the issue tracker.
+  **Watched in Claude Desktop:** the extension page renders exactly one clickable
+  link — the ↗ beside the title — and it takes its URL from `support`.
+  `documentation` is not surfaced anywhere, and a URL inside a field
+  `description` renders as plain body text that has to be copied by hand. So the
+  only link the product offered its user was a GitHub issue tracker, while the
+  one thing they cannot proceed without — how to mint a token — was unclickable
+  text. For a marketer, the setup guide *is* the support channel.
+
 ## [0.1.1] — 2026-09-09
 
 Documentation links only. No behaviour changed; the server, its tools and its
