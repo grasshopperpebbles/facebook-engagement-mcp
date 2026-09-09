@@ -154,9 +154,16 @@ script. Replying and hiding were verified separately the same day.
 
 Requires Node 22 or later.
 
-This package is **not yet published to npm** (see the
-[Changelog](./CHANGELOG.md)), so `npx facebook-engagement-mcp` cannot resolve
-it yet. Until it is, install from source:
+This package is **deliberately not published to npm**, and that is a decision
+rather than a pending task: the audience is marketers, who double-click a
+`.mcpb` rather than run `npx`. Publishing would buy a second release channel and
+a second support surface, spent on people who are not the user. The name is
+unregistered and the package stays publish-ready, so the option is held rather
+than destroyed.
+
+**Most people should install the bundle above, not this.** Installing from
+source is for developing on the server or running it under a client other than
+Claude Desktop:
 
 ```bash
 git clone https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
