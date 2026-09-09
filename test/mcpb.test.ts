@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
@@ -25,8 +25,15 @@ interface Manifest {
     entry_point: string
     mcp_config: { command: string; args: string[]; env: Record<string, string> }
   }
-  user_config: Record<string, { type: string; required?: boolean; sensitive?: boolean }>
+  documentation?: string
+  user_config: Record<
+    string,
+    { type: string; required?: boolean; sensitive?: boolean; description?: string }
+  >
 }
+
+/** The blob URL prefix under which every in-repo link in the manifest lives. */
+const BLOB_PREFIX = "https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/"
 
 const manifest = JSON.parse(readFileSync(join(root, "mcpb", "manifest.json"), "utf8")) as Manifest
 const packageJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -118,5 +125,32 @@ describe("mcpb manifest", () => {
 
   it("carries the package's own version, so a bundle is traceable to a build", () => {
     expect(manifest.version).toBe(packageJson.version)
+  })
+
+  // The install form asks a non-technical person for a Meta access token, which
+  // is the one thing in this bundle they cannot produce by reading the form. The
+  // field used to describe a token without saying where to get one, so the
+  // answer was "ask whoever sent you the file".
+  it("sends someone with no token to the guide that makes one", () => {
+    const description = manifest.user_config.meta_access_token?.description ?? ""
+
+    expect(manifest.documentation).toContain(BLOB_PREFIX)
+    expect(description).toContain(manifest.documentation)
+  })
+
+  // A link that 404s is this project's own recurring defect — the monorepo
+  // README carried one, and the setup article's slug is not the one its title
+  // suggests. Every in-repo link the manifest names is resolved against the
+  // working tree here, offline, so a renamed doc breaks the build rather than
+  // the install screen.
+  it("names only in-repo documents that exist", () => {
+    const paths = [...JSON.stringify(manifest).matchAll(/blob\/main\/([\w./-]+\.md)/g)].map(
+      (match) => match[1],
+    )
+
+    expect(paths.length).toBeGreaterThan(0)
+    for (const path of paths) {
+      expect(existsSync(join(root, path)), `${path} is linked from the manifest`).toBe(true)
+    }
   })
 })

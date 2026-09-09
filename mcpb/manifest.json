@@ -10,6 +10,13 @@
   },
   "license": "Apache-2.0",
   "keywords": ["facebook", "comments", "moderation", "ads", "graph-api", "meta"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/grasshopperpebbles/facebook-engagement-mcp.git"
+  },
+  "homepage": "https://github.com/grasshopperpebbles/facebook-engagement-mcp#readme",
+  "documentation": "https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/docs/setup-tokens-permissions.md",
+  "support": "https://github.com/grasshopperpebbles/facebook-engagement-mcp/issues",
   "server": {
     "type": "node",
     "entry_point": "server/index.js",
@@ -27,7 +34,7 @@
     "meta_access_token": {
       "type": "string",
       "title": "Meta access token",
-      "description": "A Facebook user access token for the account that administers the Page. Long-lived tokens last about 60 days; a token taken straight from the Graph API Explorer expires within the hour.",
+      "description": "A Facebook user access token for the account that administers the Page. Long-lived tokens last about 60 days; a token taken straight from the Graph API Explorer expires within the hour. If you do not have one yet, the setup guide walks the whole chain — Meta app, permissions, and the exchange that makes the token last: https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/docs/setup-tokens-permissions.md",
       "sensitive": true,
       "required": true
     },
