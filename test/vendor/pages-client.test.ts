@@ -60,25 +60,56 @@ describe("pages.credentials", () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValue(ok({ data: [{ id: "pg1", access_token: "pt1", tasks: ["MODERATE"] }] }))
-    const creds = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
+    const { usable } = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
 
-    expect(creds).toEqual([{ pageId: "pg1", accessToken: "pt1", tasks: ["MODERATE"] }])
+    expect(usable).toEqual([{ pageId: "pg1", accessToken: "pt1", tasks: ["MODERATE"] }])
   })
 
-  it("defaults tasks to an empty array rather than undefined", async () => {
+  // Supersedes "defaults tasks to an empty array rather than undefined". That
+  // default erased the difference between a role this identity does not hold
+  // and a field Graph never returned, and the MODERATE guard downstream reads
+  // the result as the former. `pages.list()` has always kept the distinction
+  // (normalize.ts); this edge was the one place that did not.
+  it("keeps tasks absent when Graph did not return the field", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(ok({ data: [{ id: "pg1", access_token: "pt1" }] }))
-    const creds = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
+    const { usable } = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
 
-    expect(creds[0]!.tasks).toEqual([])
+    expect(usable[0]!.tasks).toBeUndefined()
   })
 
-  it("skips a Page that returned no token", async () => {
+  it("keeps an empty tasks array distinct from an absent one", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(ok({ data: [{ id: "pg1", access_token: "pt1", tasks: [] }] }))
+    const { usable } = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
+
+    expect(usable[0]!.tasks).toEqual([])
+  })
+
+  // Supersedes "skips a Page that returned no token". Dropping the row left the
+  // caller unable to tell "Graph never listed this Page" from "Graph listed it
+  // and withheld the token", and it reported the first for both.
+  it("reports a Page that returned no token instead of dropping it", async () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValue(ok({ data: [{ id: "pg1" }, { id: "pg2", access_token: "pt2" }] }))
-    const creds = await createPagesClient({ accessToken: "t", fetchImpl }).pages.credentials()
+    const { usable, tokenless } = await createPagesClient({
+      accessToken: "t",
+      fetchImpl,
+    }).pages.credentials()
 
-    expect(creds.map((c) => c.pageId)).toEqual(["pg2"])
+    expect(usable.map((c) => c.pageId)).toEqual(["pg2"])
+    expect(tokenless).toEqual(["pg1"])
+  })
+
+  it("reports no tokenless Pages when every row carried a token", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(ok({ data: [{ id: "pg1", access_token: "pt1" }] }))
+    const { tokenless } = await createPagesClient({
+      accessToken: "t",
+      fetchImpl,
+    }).pages.credentials()
+
+    expect(tokenless).toEqual([])
   })
 })
 

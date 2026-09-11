@@ -55,6 +55,56 @@ describe("EnvTokenProvider", () => {
     })
   })
 
+  it("says the token was withheld when Graph listed the Page but gave no token", async () => {
+    // The other half of "inaccessible". Graph naming the Page and withholding
+    // its token is a different fault from Graph never naming it, and the old
+    // message reported the second for both — sending a reader to check
+    // administration and `pages_show_list` for a case that may be neither.
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(accounts([{ id: "pg1" }, { id: "pg2", access_token: "t2" }]))
+    const provider = createEnvTokenProvider({ userToken: "user-token", fetchImpl })
+
+    await provider.forPage("pg1").catch((error: unknown) => {
+      const message = (error as Error).message
+      expect(message).toContain("pg1")
+      expect(message).toContain("no access token")
+      expect(message).not.toContain("pages_show_list")
+      expect(message).not.toContain("t2")
+    })
+    await expect(provider.forPage("pg1")).rejects.toBeInstanceOf(PageAccessError)
+  })
+
+  it("still blames reach when Graph never listed the Page at all", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(accounts([{ id: "pg1", access_token: "t1" }]))
+    const provider = createEnvTokenProvider({ userToken: "user-token", fetchImpl })
+
+    await provider.forPage("pg9").catch((error: unknown) => {
+      expect((error as Error).message).toContain("pages_show_list")
+    })
+  })
+
+  it("reports tasks as unknown when Graph did not return the field", async () => {
+    // Not `[]`. An empty array is "this identity holds no role", which the
+    // MODERATE guard refuses writes on; an absent field is "Graph did not say",
+    // which it must not refuse on. Conflating them refused every write naming a
+    // role the identity may well hold — the `publish_actions` shape, a message
+    // literally true and entirely misleading.
+    const fetchImpl = vi.fn().mockResolvedValue(accounts([{ id: "pg1", access_token: "t1" }]))
+    const provider = createEnvTokenProvider({ userToken: "user-token", fetchImpl })
+
+    expect(await provider.tasksFor("pg1")).toBeUndefined()
+  })
+
+  it("reports an empty tasks array as itself, not as unknown", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValue(accounts([{ id: "pg1", access_token: "t1", tasks: [] }]))
+    const provider = createEnvTokenProvider({ userToken: "user-token", fetchImpl })
+
+    expect(await provider.tasksFor("pg1")).toEqual([])
+  })
+
   it("exposes the tasks a Page token carries", async () => {
     const fetchImpl = vi
       .fn()
@@ -76,7 +126,7 @@ describe("EnvTokenProvider", () => {
     const provider = createEnvTokenProvider({ userToken: "user-token", fetchImpl })
 
     const first = await provider.tasksFor("pg1")
-    first.push("MODERATE")
+    first?.push("MODERATE")
 
     expect(await provider.tasksFor("pg1")).toEqual(["ANALYZE"])
   })

@@ -50,7 +50,30 @@ export interface Page {
 export interface PageCredential {
   pageId: string
   accessToken: string
-  tasks: string[]
+  /**
+   * Page roles this token holds, e.g. MODERATE.
+   *
+   * **Absent and empty are different answers.** Undefined means Graph did not
+   * return the field, so what this identity may do is unknown; `[]` means Graph
+   * returned it empty, so the identity holds no role. Callers that refuse a
+   * write on a missing role must act on the second and not the first — see the
+   * MODERATE guard in `page-engagement`'s `outcomes/errors.ts`.
+   */
+  tasks?: string[]
+}
+
+/**
+ * What `/me/accounts` yielded, with the two outcomes kept apart.
+ *
+ * A Page can appear in that listing and still carry no `access_token`. Folding
+ * those rows away made them indistinguishable from Pages the listing never
+ * mentioned, and the caller then reported the wrong cause for both.
+ */
+export interface PageCredentials {
+  /** Pages that yielded a token. Credential material. */
+  usable: PageCredential[]
+  /** Page ids Graph listed and withheld a token for. Carries no secret. */
+  tokenless: string[]
 }
 
 export interface PagePost {

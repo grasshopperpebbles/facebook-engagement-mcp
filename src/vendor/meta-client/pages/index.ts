@@ -4,7 +4,7 @@ import { normalizeComment, normalizePage, normalizePost } from "./normalize.js"
 import type {
   Comment,
   Page,
-  PageCredential,
+  PageCredentials,
   PagePost,
   RawComment,
   RawPage,
@@ -27,7 +27,7 @@ export interface PagesClient {
   pages: {
     list(options?: ListOptions): Promise<PagedResult<Page>>
     /** Credential material — never log, return through a tool, or cache to disk. */
-    credentials(): Promise<PageCredential[]>
+    credentials(): Promise<PageCredentials>
   }
   posts: {
     list(pageId: string, options?: PostListOptions): Promise<PagedResult<PagePost>>
@@ -91,9 +91,22 @@ export function createPagesClient(options: {
         const { items } = await transport.getPage<RawPage>("/me/accounts", {
           params: { fields: PAGE_CREDENTIAL_FIELDS.join(",") },
         })
-        return items
+        // Both outcomes are reported. A row Graph listed without an
+        // `access_token` used to be filtered away, which left the caller unable
+        // to tell it from a Page Graph never listed — and the caller guessed,
+        // naming administration or `pages_show_list` for a case that may be
+        // neither. `tasks` is passed through rather than defaulted for the same
+        // reason: an absent field is not an empty role list, and
+        // `normalizePage` has always kept that distinction.
+        const usable = items
           .filter((raw): raw is RawPage & { access_token: string } => Boolean(raw.access_token))
-          .map((raw) => ({ pageId: raw.id, accessToken: raw.access_token, tasks: raw.tasks ?? [] }))
+          .map((raw) => ({
+            pageId: raw.id,
+            accessToken: raw.access_token,
+            ...(raw.tasks !== undefined && { tasks: raw.tasks }),
+          }))
+        const tokenless = items.filter((raw) => !raw.access_token).map((raw) => raw.id)
+        return { usable, tokenless }
       },
     },
 
