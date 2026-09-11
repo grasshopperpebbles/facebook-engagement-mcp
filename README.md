@@ -10,10 +10,10 @@ offered at all.
 
 ## 📖 Documentation
 
-**Everything you need to get this working is in [`docs/`](./docs/).** Three
-articles, each written from work run against a live Meta app rather than read
-off Meta's documentation — which matters here, because two of them exist
-precisely to correct it.
+**Everything you need to get this working is in [`docs/`](./docs/).** Each page
+is written from work run against a live Meta app rather than read off Meta's
+documentation — which matters here, because two of them exist precisely to
+correct it, and the one that is still partly unverified says so at the top.
 
 | | |
 |---|---|
@@ -21,6 +21,7 @@ precisely to correct it.
 | **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** | The full reference behind that page. Creating the Meta app, the three-token chain, the `MODERATE` role. This is how you get the token this server needs — you cannot run it without one, and producing it is a job in itself. |
 | **[Dark posts: why `/feed` misses your ads](./docs/dark-posts.md)** | Why no Page-level sweep reaches a comment on an ad, and the route that does. Read this before deciding this tool doesn't work. |
 | **[The `publish_actions` error](./docs/publish-actions-error.md)** | A write refused, naming a permission removed in 2018. It is not about permissions. |
+| **[The System User token and the 60-day expiry](./docs/system-user-token.md)** | For a team. Re-minting a token every 60 days does not scale past one person, and a Business Manager System User is the usual answer. **Partly verified** — the setup is watched, the no-expiry claim is not, and the page says which is which. |
 
 New here? [Get your Meta access token](./docs/get-your-token.md),
 then [Install and configure](#install-and-configure).
@@ -572,7 +573,7 @@ package.
 
 This README says what a token must *be*. It does not say how to make one,
 because that is a Meta app setup rather than a property of this server, and it
-is written up in full in [`docs/`](./docs/). Three articles:
+is written up in full in [`docs/`](./docs/):
 
 - **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** — app
   creation, the token chain, verifying the scopes you actually got, and the
@@ -584,6 +585,12 @@ is written up in full in [`docs/`](./docs/). Three articles:
 - **[The `publish_actions` error](./docs/publish-actions-error.md)** — the
   refusal in [Troubleshooting](#troubleshooting), why the message misleads, and
   the four checks that isolate it.
+- **[The System User token and the 60-day expiry](./docs/system-user-token.md)**
+  — the token treadmill is the cost of running this across a team, and a
+  Business Manager System User is the usual answer to it. The Business Manager
+  setup here was watched on screen; **whether such a token actually carries no
+  expiry has not been run**, and the page keeps those apart rather than
+  asserting the second.
 
 Everything you strictly need is below; the articles are the long version with the screenshots and
 the failure modes.
