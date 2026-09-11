@@ -6,14 +6,12 @@ date: 2026-09-11
 
 # The System User token, and the 60-day expiry
 
-> **Status: partly verified, and the important half is not.**
-> The Business Manager navigation below was watched on screen on 2026-09-11.
-> **Whether a System User token actually carries no expiry has not been run
-> here**, and neither has whether this server's Page-token exchange survives
-> one. Meta's documentation says System User tokens do not expire; this project
-> has been wrong eleven times believing a sentence it had not watched, so that
-> claim sits here as a claim. The last section is how to settle it in one
-> command — and if you settle it before we do, the result is worth an issue.
+> **Status: verified end to end, 2026-09-11.** A System User token was issued,
+> checked with `debug_token`, and driven through this server against a live
+> Page. `expires_at` came back **0 — no expiry**, on the System User token *and*
+> on the Page token exchanged from it, and comment reads ran through the server
+> on that Page. The 60-day exchange is not needed on this path. Every claim
+> below was watched rather than read, except where it says otherwise.
 
 ## The problem this is meant to solve
 
@@ -29,9 +27,35 @@ a broken install.
 
 A **System User** is a non-human identity that belongs to a Business Manager
 rather than to a person. Its token is issued from Business settings instead of
-the Graph API Explorer. This is the standard answer to the treadmill.
+the Graph API Explorer, and **it does not expire** — confirmed here rather than
+taken from the documentation.
 
-## What is verified
+It is also a tighter credential than the one it replaces. A personal token
+reaches every Page you administer; on the account this was tested against that
+was seven Pages, six of them irrelevant to this tool. The System User reaches
+only the Pages assigned to it — one.
+
+## The trap that costs the most time
+
+**The app must be assigned to the System User as an asset, and that is not the
+same act as giving the System User a role on the app.** Doing it from the app's
+side — *Accounts → Apps → your app → Assign people* — leaves **Generate token**
+refusing with:
+
+> No permissions available. Assign an app role to the system user or select
+> another app to continue.
+
+The assignment that clears it is from the System User's side: **Users → System
+users → your user → Assign assets → Apps**. The *Installed apps* tab looks like
+where an app is added and is not — it stays empty until a token exists, which is
+circular and reads like the thing you cannot do.
+
+**It is not instant.** The app appeared under *Assigned assets* minutes after
+the app-side role was granted, and the business-assets count went from 2 to 3
+without anything else being clicked. If the dialog still refuses, reload Business
+settings before concluding anything.
+
+## Setting up the Page
 
 These were watched on screen rather than read in a doc.
 
@@ -55,9 +79,10 @@ not the Page. Only the **Pages** list under **Accounts** answers that question.
 users** → **Add**. Name it after the thing that uses it, not after a person.
 Role: **Admin**.
 
-**2. Assign it the Page.** On the System User, **Assign assets** → **Pages** →
-your Page → **full control**, or at minimum the Manage-Page tasks that include
-moderation.
+**2. Assign it the Page *and* the app.** On the System User, **Assign assets** →
+**Pages** → your Page → **full control**, then again with **Apps** → your app →
+**full control**. Both are needed and they are separate acts — see *The trap*
+above, which is where the time goes.
 
 This step is the one that decides everything. **A System User inside a
 portfolio that owns the Page does not thereby reach the Page** — the asset
@@ -98,7 +123,32 @@ comes from Graph, and an *absent* role list is not an empty one. If this fires
 on a System User that plainly has full control, it is worth an issue — that
 distinction is newly handled and has not been seen in the wild.
 
-## Settling the expiry question yourself
+## What a good result looks like
+
+Observed on 2026-09-11, with the values that matter:
+
+```
+type          SYSTEM_USER
+expires_at    NEVER (expires_at is 0)
+data_access   NEVER (expires_at is 0)
+
+Pages this token reaches (1):
+  → <page-id>   <Page name>   tasks: MANAGE, CREATE_CONTENT, MODERATE, ...
+
+Page token for <page-id>:
+  type          PAGE
+  expires_at    NEVER (expires_at is 0)
+```
+
+Both tokens carry no expiry — the exchanged Page token inherits it, which is the
+half that was not obvious and is the half that makes this worth doing.
+
+**Check the scope list on that output.** It is the easiest thing to get wrong:
+the permission picker is a scrolling multi-select and a missed tick is silent.
+A token without `pages_manage_engagement` reads comments perfectly and cannot
+reply to one.
+
+## Checking it yourself
 
 From a clone of the monorepo:
 
@@ -109,11 +159,12 @@ META_ACCESS_TOKEN=<your system user token> \
 
 Read the `expires_at` line in section 1:
 
-- **`NEVER (expires_at is 0)`** — the token carries no expiry. This is the
-  answer this page is waiting for.
+- **`NEVER (expires_at is 0)`** — the token carries no expiry. This is what a
+  System User token should say.
 - **`(absent — Meta returned no such field)`** — Meta did not say. Not the same
   thing, and not evidence of anything.
-- **A timestamp** — it expires then, and the treadmill is unchanged.
+- **A timestamp** — it expires then. If this is a System User token, check you
+  chose **Never** rather than 60 days at the expiration step.
 
 Then read section 2 — your Page should be listed, with `tasks` including
 `MODERATE` — and section 4, which debugs the exchanged Page token in its own
@@ -122,7 +173,8 @@ right.
 **A token that authenticates is not a token that works.** The check that
 actually matters is reading comments through the server with it, because the
 Page-token exchange has to survive the new identity too. Do that before
-concluding anything.
+concluding anything — it is how the verification above was finished, and it is
+where a subtly wrong setup shows up.
 
 ## The question underneath this
 

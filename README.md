@@ -13,7 +13,7 @@ offered at all.
 **Everything you need to get this working is in [`docs/`](./docs/).** Each page
 is written from work run against a live Meta app rather than read off Meta's
 documentation — which matters here, because two of them exist precisely to
-correct it, and the one that is still partly unverified says so at the top.
+correct it.
 
 | | |
 |---|---|
@@ -21,7 +21,7 @@ correct it, and the one that is still partly unverified says so at the top.
 | **[Setup, tokens and permissions](./docs/setup-tokens-permissions.md)** | The full reference behind that page. Creating the Meta app, the three-token chain, the `MODERATE` role. This is how you get the token this server needs — you cannot run it without one, and producing it is a job in itself. |
 | **[Dark posts: why `/feed` misses your ads](./docs/dark-posts.md)** | Why no Page-level sweep reaches a comment on an ad, and the route that does. Read this before deciding this tool doesn't work. |
 | **[The `publish_actions` error](./docs/publish-actions-error.md)** | A write refused, naming a permission removed in 2018. It is not about permissions. |
-| **[The System User token and the 60-day expiry](./docs/system-user-token.md)** | For a team. Re-minting a token every 60 days does not scale past one person, and a Business Manager System User is the usual answer. **Partly verified** — the setup is watched, the no-expiry claim is not, and the page says which is which. |
+| **[The System User token and the 60-day expiry](./docs/system-user-token.md)** | **The 60-day exchange is avoidable.** A Business Manager System User token carries no expiry — verified end to end against a live Page — and reaches only the Pages assigned to it rather than every Page you administer. Read this before setting up for a team. |
 
 New here? [Get your Meta access token](./docs/get-your-token.md),
 then [Install and configure](#install-and-configure).
@@ -587,10 +587,11 @@ is written up in full in [`docs/`](./docs/):
   the four checks that isolate it.
 - **[The System User token and the 60-day expiry](./docs/system-user-token.md)**
   — the token treadmill is the cost of running this across a team, and a
-  Business Manager System User is the usual answer to it. The Business Manager
-  setup here was watched on screen; **whether such a token actually carries no
-  expiry has not been run**, and the page keeps those apart rather than
-  asserting the second.
+  Business Manager System User removes it. Verified 2026-09-11: the token and
+  the Page token exchanged from it both come back with no expiry, and comment
+  reads run through the server on that identity. Includes the one setup step
+  that costs the most time — the app is a *separate* asset assignment from the
+  Page, and doing it from the app's side does not count.
 
 Everything you strictly need is below; the articles are the long version with the screenshots and
 the failure modes.
