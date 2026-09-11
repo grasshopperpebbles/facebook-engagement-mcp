@@ -44,6 +44,40 @@ describe("triageThreads with author identity", () => {
     expect(threads[0]!.status).toBe("needs_reply")
   })
 
+  it("marks a thread needing a reply when a visitor spoke after the Page", () => {
+    // Verified against live Graph 2026-09-11 (T-11): threads go at least three
+    // levels deep, so visitor -> Page -> visitor is a real shape and not a
+    // hypothetical. "The Page appears somewhere in this thread" reads that as
+    // answered and hides a customer who is waiting — the exact outcome
+    // activity.ts says this triage must never produce. The Page has to have
+    // the LAST word, not any word.
+    const { threads } = triageThreads(
+      [
+        thread({ id: "c1", author: { id: "u1" } }, [
+          { id: "r1", author: { id: pageId } },
+          { id: "r2", author: { id: "u1" } },
+        ]),
+      ],
+      pageId,
+    )
+
+    expect(threads[0]!.status).toBe("needs_reply")
+  })
+
+  it("keeps a thread answered when the Page spoke last", () => {
+    const { threads } = triageThreads(
+      [
+        thread({ id: "c1", author: { id: "u1" } }, [
+          { id: "r1", author: { id: "u1" } },
+          { id: "r2", author: { id: pageId } },
+        ]),
+      ],
+      pageId,
+    )
+
+    expect(threads[0]!.status).toBe("answered")
+  })
+
   it("marks a hidden comment hidden regardless of replies", () => {
     const { threads } = triageThreads(
       [

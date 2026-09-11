@@ -524,7 +524,27 @@ export async function runCommentActivity(
           const { items } = await client.comments.replies(comment.id, {
             maxItems: MAX_REPLIES_PER_COMMENT,
           })
-          repliesByCommentId.set(comment.id, items)
+
+          // A reply can carry replies of its own. Confirmed against live Graph
+          // on 2026-09-11 (T-11): a third level is accepted and `parent` points
+          // at the reply, not at the top-level comment. Stopping after one
+          // level meant a visitor's answer to the Page's reply was never read —
+          // and since triage asks who spoke last, an unread last word made a
+          // waiting customer look handled.
+          //
+          // Flattened into the same thread deliberately. The unit a person acts
+          // on is the conversation, not the nesting, and `replyCount` keeps this
+          // from costing a call per reply on the ordinary case where nobody has
+          // replied to a reply.
+          const deeper: Comment[] = []
+          for (const reply of items) {
+            if ((reply.replyCount ?? 0) === 0) continue
+            const { items: nested } = await client.comments.replies(reply.id, {
+              maxItems: MAX_REPLIES_PER_COMMENT,
+            })
+            deeper.push(...nested)
+          }
+          repliesByCommentId.set(comment.id, [...items, ...deeper])
         }
 
         threads.push(...assembleThreads({ post, comments, repliesByCommentId }))

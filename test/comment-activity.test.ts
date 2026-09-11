@@ -608,3 +608,78 @@ describe("runCommentActivity", () => {
     },
   )
 })
+
+/**
+ * Threads deeper than two levels, confirmed against live Graph on 2026-09-11
+ * (T-11): a reply can itself carry replies, with `parent` pointing at the
+ * reply rather than at the top-level comment.
+ *
+ * The sweep used to stop after one level, so a visitor's answer to the Page's
+ * reply was never fetched — and a thread whose customer is still waiting came
+ * back as `answered`. That is the one outcome `activity.ts` says this must
+ * never produce.
+ */
+const threeLevelFetch = () =>
+  vi.fn(async (url: string) => {
+    const { pathname, searchParams } = new URL(url)
+    if (pathname.endsWith("/me/accounts")) {
+      const wantsToken = searchParams.get("fields")?.includes("access_token")
+      return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+    }
+    const json = (data: unknown) => new Response(JSON.stringify({ data }), { status: 200 })
+    if (pathname.endsWith("/pg1/feed")) return json([{ id: "pg1_deep", is_published: true }])
+    if (pathname.endsWith("/pg1_deep/comments")) {
+      return json([
+        {
+          id: "c_top",
+          message: "Visitor asks a question",
+          from: { id: "visitor", name: "A Visitor" },
+          comment_count: 1,
+        },
+      ])
+    }
+    if (pathname.endsWith("/c_top/comments")) {
+      return json([
+        {
+          id: "c_page",
+          message: "The Page answers",
+          from: { id: "pg1", name: "Page" },
+          comment_count: 1,
+          parent: { id: "c_top" },
+        },
+      ])
+    }
+    if (pathname.endsWith("/c_page/comments")) {
+      return json([
+        {
+          id: "c_back",
+          message: "Visitor comes back, still waiting",
+          from: { id: "visitor", name: "A Visitor" },
+          comment_count: 0,
+          parent: { id: "c_page" },
+        },
+      ])
+    }
+    return json([])
+  })
+
+describe("threads deeper than two levels", () => {
+  it("fetches the replies of a reply that reports its own replies", async () => {
+    const fetchImpl = threeLevelFetch()
+    await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+
+    const asked = fetchImpl.mock.calls.map(([url]) => new URL(url as string).pathname)
+    expect(asked.some((p) => p.endsWith("/c_page/comments"))).toBe(true)
+  })
+
+  it("does not report a thread answered when the visitor spoke last", async () => {
+    // The failure this exists for: the Page replied, the customer replied
+    // again, and the tool said the thread was handled.
+    const result = await runCommentActivity(deps(threeLevelFetch()), {
+      page: "pg1",
+      filter: "needs_reply",
+    })
+
+    expect(JSON.stringify(result)).toContain("still waiting")
+  })
+})

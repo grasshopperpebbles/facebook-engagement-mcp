@@ -38,9 +38,23 @@ export function triageThreads(
     if (thread.comment.hidden === true) return { ...thread, status: "hidden" }
 
     if (basis === "author_identity" && pageId !== undefined) {
+      // The Page must have the LAST word, not merely a word.
+      //
+      // This used to be `.some(reply => author === pageId)`, which reads
+      // visitor -> Page -> visitor as answered and hides a customer who is
+      // waiting. That shape was a hypothetical until 2026-09-11 (T-11), when
+      // threads were confirmed against live Graph to go at least three levels
+      // deep with correct `parent` pointers. activity.ts states the invariant
+      // this triage is built on — over-surface rather than hide a waiting
+      // customer — and `.some()` broke it in the one direction that matters.
+      //
+      // Replies arrive chronologically (`order: "chronological"` in the
+      // client), so the last element is the most recent thing said.
+      const lastWord = thread.replies.at(-1)
       const byPage =
-        thread.comment.author?.id === pageId ||
-        thread.replies.some((reply) => reply.author?.id === pageId)
+        lastWord === undefined
+          ? thread.comment.author?.id === pageId
+          : lastWord.author?.id === pageId
       return { ...thread, status: byPage ? "answered" : "needs_reply" }
     }
 
