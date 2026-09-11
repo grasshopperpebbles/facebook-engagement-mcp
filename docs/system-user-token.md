@@ -9,9 +9,10 @@ date: 2026-09-11
 > **Status: verified end to end, 2026-09-11.** A System User token was issued,
 > checked with `debug_token`, and driven through this server against a live
 > Page. `expires_at` came back **0 — no expiry**, on the System User token *and*
-> on the Page token exchanged from it, and comment reads ran through the server
-> on that Page. The 60-day exchange is not needed on this path. Every claim
-> below was watched rather than read, except where it says otherwise.
+> on the Page token exchanged from it. Comment **reads** ran through the server;
+> the **write** path published a reply and deleted it, on an unpublished post so
+> nothing was ever public. The 60-day exchange is not needed on this path. Every
+> claim below was watched rather than read.
 
 ## The problem this is meant to solve
 
@@ -175,10 +176,26 @@ Four things in that output, each of which has been a real failure at some point:
   that permission's targets — reads still succeed, because they go through the
   Page-token exchange, and only writes fail.
 
-**Verified to here and no further.** The permission chain for writes is
-complete and Graph agrees, but no reply was published on this identity during
-the check, because the Page had no comment to reply to. Reads were run through
-the server end to end.
+**Reads and writes both verified on this identity, 2026-09-11.** Reads ran
+through the server end to end. The write path was then proved with
+`write-probe.mjs dark-reply`, which creates an *unpublished* post, comments on
+it as the Page, replies to that comment, and deletes everything — nothing public
+at any point. The reply published, `status 200`.
+
+**The control in that run turned up something worth knowing.** Sending the same
+write with the System User token directly, rather than the Page token exchanged
+from it, is refused — correctly — with:
+
+```text
+(#3) Publishing comments through the API is only available for page access tokens
+```
+
+A *personal* user token in the same position returns the notorious
+`(#200) The permission(s) publish_actions are not available. It has been
+deprecated.` instead — a dead scope, named misleadingly, which has its own
+[article](publish-actions-error.md). **A System User never produces that
+message**, because it has no personal timeline and never held the old
+permission. Same fault, same fix, clearer error.
 
 ## Checking it yourself
 

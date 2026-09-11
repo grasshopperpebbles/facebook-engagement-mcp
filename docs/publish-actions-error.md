@@ -76,6 +76,29 @@ person, finds it does not exist any more, and says so. Accurately.
 The error is not about your app. It is Graph telling you which of the two doors
 you walked through, in the least helpful phrasing available.
 
+### The same mistake, a different message — added 2026-09-11
+
+Running the identical control with a **Business Manager System User** token
+rather than a personal user token returns something else entirely:
+
+```text
+(#3) Publishing comments through the API is only available for page access tokens
+```
+
+Same wrong identity, same endpoint, same fix — and a message that names the
+actual fault in one line. `publish_actions` is not mentioned, because a System
+User has no personal timeline and never had the old permission to lose.
+
+So **the misleading error is specific to personal user tokens**, and if you are
+on a System User you will never see this article's symptom. That is worth
+knowing in both directions: it means a search for `publish_actions` will not
+find your problem, and it means the confusing case is the *common* one, since
+most people start with an Explorer token.
+
+It also sharpens the diagnosis this article argues for. Two identities, two
+messages, one cause — which is exactly why "check identity before permission"
+beats reading the message. A `(#200)` and a `(#3)` here mean the same thing.
+
 ## The wrong conclusion, and how I reached it
 
 My first conclusion was that this needed App Review. I want to be precise about
