@@ -90,19 +90,30 @@ assignment is a separate act, and skipping it produces a failure that reads
 like a permissions problem and is not one. See *When it goes wrong* below.
 
 **3. Generate the token.** On the System User, **Generate new token** → select
-your Meta app → tick the permissions this server needs:
+your Meta app → **Set expiration: Never** → tick the permissions this server
+needs:
 
 | Permission | What it gets you |
 |---|---|
-| `pages_show_list` | Which Pages the identity manages |
+| `pages_show_list` | Which Pages the identity manages — **without this nothing works**, because every Page token comes from `/me/accounts` |
 | `pages_read_user_content` | Reading the comments |
-| `pages_manage_engagement` | Replying and hiding (only if you want writes) |
+| `pages_manage_engagement` | Replying and hiding. Skip it and reads work perfectly while every write is refused |
 | `ads_read` | Comments on your ads — see [why](dark-posts.md) |
+
+**Check the list after you generate, not while you tick it.** The picker is a
+scrolling multi-select and a missed tick is silent — the first token issued
+during this verification came back without `pages_manage_engagement` and looked
+completely healthy. `debug_token` is where you find out; see *Checking it
+yourself* below.
+
+Meta may also hand you `pages_read_engagement` and `pages_manage_posts`
+alongside these, bundled with the app's use case. Neither is needed here and
+neither does any harm.
 
 **4. Paste it into the install form's Meta access token field**, in place of the
 60-day one. The server does not care which kind of token it holds: it sends
 whatever it is given to `/me/accounts` and takes the per-Page tokens from the
-reply.
+reply. Nothing in the server needs reconfiguring for a System User.
 
 ## When it goes wrong
 
@@ -131,22 +142,43 @@ Observed on 2026-09-11, with the values that matter:
 type          SYSTEM_USER
 expires_at    NEVER (expires_at is 0)
 data_access   NEVER (expires_at is 0)
+scopes        pages_show_list, ads_read, pages_read_engagement,
+              pages_read_user_content, pages_manage_posts,
+              pages_manage_engagement, public_profile
 
 Pages this token reaches (1):
   → <page-id>   <Page name>   tasks: MANAGE, CREATE_CONTENT, MODERATE, ...
 
+MODERATE on <page-id>: yes
+
 Page token for <page-id>:
   type          PAGE
   expires_at    NEVER (expires_at is 0)
+
+pages_manage_engagement:
+  user token: granted with no target_ids (reads as all Pages).
+  page token: granted with no target_ids (reads as all Pages).
 ```
 
-Both tokens carry no expiry — the exchanged Page token inherits it, which is the
-half that was not obvious and is the half that makes this worth doing.
+Four things in that output, each of which has been a real failure at some point:
 
-**Check the scope list on that output.** It is the easiest thing to get wrong:
-the permission picker is a scrolling multi-select and a missed tick is silent.
-A token without `pages_manage_engagement` reads comments perfectly and cannot
-reply to one.
+- **Both tokens say NEVER.** The exchanged Page token inherits the non-expiry.
+  That is the half that was not obvious and the half that makes this worth
+  doing — a non-expiring user token buys nothing if the exchange returns a
+  60-day Page token.
+- **One Page, not all of them.** A System User reaches only its assigned assets.
+  The personal token it replaced reached seven Pages on the same account.
+- **`MODERATE` present.** Without it, replies and hides are refused whatever the
+  scopes say.
+- **`no target_ids`.** Meta can grant a permission against a *list of Page ids*.
+  A token can carry `pages_manage_engagement` while your Page is absent from
+  that permission's targets — reads still succeed, because they go through the
+  Page-token exchange, and only writes fail.
+
+**Verified to here and no further.** The permission chain for writes is
+complete and Graph agrees, but no reply was published on this identity during
+the check, because the Page had no comment to reply to. Reads were run through
+the server end to end.
 
 ## Checking it yourself
 

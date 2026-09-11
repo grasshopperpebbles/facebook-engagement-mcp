@@ -314,6 +314,13 @@ setup is **longer**, not shorter — the app is a separate asset assignment from
 the Page, and getting that wrong produces a refusal that names the remedy you
 have already applied.
 
+**Two setup details that cost time.** The app is a *separate* asset assignment
+from the Page and only the System-User-side assignment counts; and the
+permission picker is a scrolling multi-select where a missed tick is silent —
+the first token issued during this verification came back without
+`pages_manage_engagement`, read comments perfectly, and would have refused every
+write. Check the scopes on `debug_token`'s output, not in the picker.
+
 Full walkthrough, with the trap and a known-good output to compare against:
 [The System User token and the 60-day expiry](system-user-token.md).
 
