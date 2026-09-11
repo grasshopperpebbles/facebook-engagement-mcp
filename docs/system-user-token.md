@@ -225,16 +225,39 @@ Page-token exchange has to survive the new identity too. Do that before
 concluding anything — it is how the verification above was finished, and it is
 where a subtly wrong setup shows up.
 
-## The question underneath this
+## Rolling this out to a team: one System User per person
 
-If System User tokens do not expire, there is still a decision to make that
-this page cannot make for you. A System User is a *business* identity, not a
-personal one. The install is designed so each person enters their own token and
-reaches whatever their own Facebook identity reaches, and nobody holds anyone
-else's credentials.
+**Make a System User for each person, not one for everybody.** It is more setup
+and it is the right default, for three reasons that only show up later.
 
-One System User token shared across a team removes the expiry and removes that
-boundary with it. One System User per person keeps the boundary and removes the
-expiry, but not the per-person setup.
+- **You can cut off one person.** Someone leaves, or a laptop goes missing, and
+  you delete their System User. Everyone else keeps working. With a shared
+  token you re-issue it and then chase every colleague to paste the new one —
+  during which nobody's tool works.
+- **You can see who did what.** Replies and hides are attributed to the
+  identity that made them. One shared token makes every action look like the
+  same actor, and there is no reconstructing it afterwards.
+- **You can give different people different reach.** A System User sees only the
+  Pages assigned to it. Someone who handles one brand does not need a token that
+  reaches all of them — and with a shared token, everyone has everyone's access
+  by construction.
 
-Neither is wrong. Decide it deliberately rather than discovering it.
+The cost is real and worth stating: the per-person setup is **longer** than the
+60-day path it replaces, because each person needs the Page *and* the app
+assigned to their System User before a token will generate. You do that once per
+person, and then never again — against the old path's every-60-days, per person,
+forever.
+
+**Name them after the person, not the tool.** `grasshopperAdmin` tells you
+nothing six months on when you need to know whose token to revoke.
+
+**Nothing in the server changes.** Each person pastes their own token into the
+same install form field; the server sends whatever it is given to `/me/accounts`
+and works from what comes back.
+
+### If you do share one anyway
+
+There is a case for it — one operator, or a small team where everyone has the
+same access anyway and the admin overhead is the real cost. If you go that way,
+know what you are trading: no attribution, no individual revocation, and a
+rotation that breaks everyone at once. Write down who holds it.
