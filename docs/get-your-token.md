@@ -54,6 +54,11 @@ paste: [the token chain](setup-tokens-permissions.md#step-3-the-token-chain).
 Skipping this step is the most common reason the tool works for an hour and
 then stops.
 
+**Sixty days later it stops again**, and this path has no answer to that — you
+repeat steps 3 and 4. If your Page lives in a business portfolio there is a
+token that never expires: [the System User
+token](system-user-token.md). It is more setup once, and none ever again.
+
 ## 5. Paste it in
 
 Put the long-lived token in the install form's **Meta access token** field. It
@@ -68,7 +73,7 @@ You are done. Ask Claude about comments on your Page.
 | No comments, no error | The token is a user token that was never exchanged, or you are not an admin of the Page. [The empty array](setup-tokens-permissions.md) |
 | Nothing from your ads | `ads_read` was not granted. [Ads' comments are invisible](dark-posts.md) |
 | A refusal naming `publish_actions` | A permission removed in 2018 — the message is misleading. [What it really means](publish-actions-error.md) |
-| It worked, then stopped | The 60 days are up. Repeat steps 3 and 4 |
+| It worked, then stopped | The 60 days are up. Repeat steps 3 and 4 — or stop repeating them: a [System User token](system-user-token.md) does not expire |
 
 The full setup reference, with every step explained and every command shown, is
 [here](setup-tokens-permissions.md).

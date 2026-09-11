@@ -102,7 +102,8 @@ and hiding**, off by default.
 
 **Somebody has to produce that token first, and it will not be the person
 installing the bundle.** It is developer work: a Meta app, an app secret, and a
-token chain, redone every 60 days. The full walkthrough is
+token chain — redone every 60 days, unless you use a [System User
+token](./docs/system-user-token.md), which does not expire. The full walkthrough is
 **[docs/setup-tokens-permissions.md](./docs/setup-tokens-permissions.md)**; the
 short version is under [Getting a token](#getting-a-token).
 
@@ -646,17 +647,21 @@ Three ways to live with it, worst to best:
 2. **Diarise it.** Re-mint on day 55. Cheap, and it turns an outage into a
    chore.
 3. **Use a Business Manager System User token.** A System User is a
-   non-human identity inside a business portfolio, and tokens issued to one are
-   not on the 60-day clock. If your Pages sit in a business portfolio, this is
-   the option that removes the treadmill rather than scheduling it.
+   non-human identity inside a business portfolio, and its tokens are not on the
+   60-day clock. If your Pages sit in a business portfolio, this removes the
+   treadmill rather than scheduling it.
 
-**Option 3 is documented, not verified here.** Meta describes System User tokens
-as long-lived or non-expiring depending on how they are issued, and
-`src/auth/token-provider.ts` was written expecting "the user or system token" —
-but no System User token has been run through this server. Treat it as the thing
-to try, not a promise. If you try it, the check is the same as any other token:
-`/me/accounts` must return the Pages you expect, and `debug_token` must show the
-scopes and the expiry.
+**Option 3 is verified, as of 2026-09-11.** This paragraph used to say it was
+documented and not tested; the correction stays visible rather than being edited
+away. `debug_token` returned **`expires_at: 0`** on the System User token **and
+on the Page token exchanged from it** — the second being the half that decides
+it — and comment reads ran through this server on that identity.
+
+It is also a **tighter** credential, not merely a longer-lived one: the personal
+token on that account reached seven Pages, the System User the one assigned to
+it. The cost is that setup is *longer* than the 60-day path, because the app is a
+separate asset assignment from the Page. Walkthrough, trap and a known-good
+output: **[The System User token and the 60-day expiry](./docs/system-user-token.md)**.
 
 **Whoever sets this up mints the token — not the person using it.** That is the
 part worth being explicit about, because the `.mcpb` install screen asks for a
@@ -664,10 +669,11 @@ token as if the person installing it would have one, and they will not. Creating
 a Meta app, adding permissions, and running a `curl` with an app secret is
 developer work. The realistic division is that you do all of it and hand over a
 string — **and do it again every 60 days**, for each person, because the token is
-per-user and the expiry is not negotiable. With more than a handful of people
-that arithmetic is the argument for looking at a Business Manager **System
-User** token, which is issued from Business settings and is not on the 60-day
-clock.
+per-user and the expiry is not negotiable — **unless you use a [System User
+token](./docs/system-user-token.md)**, which is issued from Business settings,
+does not expire, and is verified against this server. That turns "again every 60
+days, for each person" into a one-off, and it is the single biggest saving
+available to anyone running this for more than themselves.
 
 ### User token or Page token
 

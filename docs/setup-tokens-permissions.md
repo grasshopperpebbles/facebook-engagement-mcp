@@ -297,12 +297,25 @@ The way out — if your Pages live in a business portfolio — is a **System Use
 a non-human identity in Business settings, whose tokens are not on the 60-day
 clock. That turns a recurring chore into a one-off.
 
-**I have not run one through this stack.** Meta documents System User tokens as
-long-lived or non-expiring depending on how they are issued; that is a claim I am
-repeating rather than one I have tested, and this article's whole point is the
-difference between those two things. If you try it, verify the same way as any
-other token: `/me/accounts` returns the Pages you expect, and `debug_token` shows
-the scopes and the expiry.
+**Run through this stack on 2026-09-11, and it holds.** This paragraph used to
+say the opposite — that Meta's non-expiring claim was one I was repeating rather
+than testing — and the correction is kept rather than edited away, because this
+article's whole point is the difference between those two things.
+
+`debug_token` on a System User token returned **`expires_at: 0`**, and so did the
+**Page token exchanged from it** — which is the half that actually decides it,
+since a non-expiring user token buys nothing if the exchange hands back a 60-day
+Page token. Comment reads then ran through the server on that identity.
+
+Two things came out of it that the documentation does not tell you. It is a
+**tighter** credential, not just a longer-lived one: the personal token on that
+account reached seven Pages, the System User the one assigned to it. And the
+setup is **longer**, not shorter — the app is a separate asset assignment from
+the Page, and getting that wrong produces a refusal that names the remedy you
+have already applied.
+
+Full walkthrough, with the trap and a known-good output to compare against:
+[The System User token and the 60-day expiry](system-user-token.md).
 
 **Then get the Page token:**
 

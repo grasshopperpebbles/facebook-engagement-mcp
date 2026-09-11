@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "facebook-engagement-mcp",
   "display_name": "Facebook Page Comments",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Find and group the comments on a Facebook Page's posts and ads, including comments on the unpublished posts ads run on.",
   "long_description": "Answers \"what are people saying on our Page, and does any of it need a reply\" \u2014 including on ads.\n\nAds usually run on **unpublished** posts, and no Page-level sweep returns those, so most tools cannot see ad comments at all. This one resolves an ad or campaign to the post behind it and reads the comments there.\n\nYou do not need to know an ad's ID. Ask what is running and it will list your ad accounts, then the campaigns in one, by name.\n\n**Replying and hiding are off unless you switch them on.** With them on, your client asks you to approve each call, and publishing needs a confirmation prompt on top of that \u2014 where a client cannot show one, the reply is refused rather than published. There is no delete, deliberately: hiding is reversible, deletion is not, and it destroys something a member of the public wrote.",
   "author": {
@@ -34,7 +34,7 @@
     "meta_access_token": {
       "type": "string",
       "title": "Meta access token",
-      "description": "A Facebook user access token for the account that administers the Page. Long-lived tokens last about 60 days; a token taken straight from the Graph API Explorer expires within the hour. If you do not have one yet, the setup guide walks the whole chain — Meta app, permissions, and the exchange that makes the token last: https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/docs/get-your-token.md",
+      "description": "A Facebook access token for an identity that administers the Page. A token taken straight from the Graph API Explorer expires within the hour; the long-lived one you exchange it for lasts about 60 days and then has to be redone. A Business Manager System User token does not expire at all, and is the better option if your Page is in a business portfolio. If you do not have a token yet, the setup guide walks the whole chain \u2014 Meta app, permissions, and the exchange: https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/docs/get-your-token.md The non-expiring route is here: https://github.com/grasshopperpebbles/facebook-engagement-mcp/blob/main/docs/system-user-token.md",
       "sensitive": true,
       "required": true
     },
