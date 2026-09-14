@@ -21,7 +21,14 @@ import type {
 import { resolveAdPosts } from "./ad-posts.js"
 import { explainGraphError } from "./errors.js"
 import { type Counts, countThreads, type Group, type GroupBy, groupThreads } from "./grouping.js"
-import { assembleThreads, type Thread, type ThreadPost, threadPost } from "./threads.js"
+import {
+  assembleThreads,
+  commentTime,
+  inTimeOrder,
+  type Thread,
+  type ThreadPost,
+  threadPost,
+} from "./threads.js"
 import {
   applyFilter,
   type Filter,
@@ -234,17 +241,6 @@ function pageIdFromPostId(postId: string): string | undefined {
   return prefix !== undefined && prefix.length > 0 && rest !== undefined && rest.length > 0
     ? prefix
     : undefined
-}
-
-/**
- * Milliseconds for a Graph timestamp such as `2026-08-30T10:00:00+0000`, or
- * `undefined` when it is missing or unparseable. Never throws: a malformed
- * timestamp must cost that thread its ordering, not the whole answer.
- */
-function commentTime(comment: Comment): number | undefined {
-  if (comment.createdTime === undefined) return undefined
-  const parsed = Date.parse(comment.createdTime)
-  return Number.isNaN(parsed) ? undefined : parsed
 }
 
 /** Newest first; threads with no usable timestamp last. */
@@ -536,6 +532,16 @@ export async function runCommentActivity(
           // on is the conversation, not the nesting, and `replyCount` keeps this
           // from costing a call per reply on the ordinary case where nobody has
           // replied to a reply.
+          //
+          // Sorted, because flattening destroys the order (T-36). Each Graph
+          // call returns its own replies chronologically, but concatenating
+          // them puts every second-level reply ahead of every third-level one
+          // regardless of when any of it was written — so on a two-branch
+          // thread the Page's older answer ends up last. Triage asks who spoke
+          // last, and it used to read that off the end of this array. It no
+          // longer does, and this is sorted anyway: the array is what a person
+          // reads in the response, and a conversation rendered out of order is
+          // wrong on its own terms, not only as triage's input.
           const deeper: Comment[] = []
           for (const reply of items) {
             if ((reply.replyCount ?? 0) === 0) continue
@@ -544,7 +550,7 @@ export async function runCommentActivity(
             })
             deeper.push(...nested)
           }
-          repliesByCommentId.set(comment.id, [...items, ...deeper])
+          repliesByCommentId.set(comment.id, inTimeOrder([...items, ...deeper]))
         }
 
         threads.push(...assembleThreads({ post, comments, repliesByCommentId }))

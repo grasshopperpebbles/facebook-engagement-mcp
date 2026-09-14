@@ -96,6 +96,46 @@ describe("triageThreads with author identity", () => {
 
     expect(threads[0]!.status).toBe("answered")
   })
+
+  it("reads the last word off the clock, not off array position (T-36)", () => {
+    // The replies are in the order `activity.ts` used to assemble them:
+    // every second-level reply, then every third-level one. `rA1` is the Page
+    // answering branch A at 12:00 and sits LAST in the array; `rB` is a visitor
+    // commenting on branch B at 13:00 and sits in the middle. Whoever spoke
+    // last is the visitor, and this used to answer "the Page" — reporting a
+    // waiting customer as handled, which is the one direction triage must never
+    // fail in.
+    const { threads } = triageThreads(
+      [
+        thread({ id: "c1", author: { id: "u1" }, createdTime: "2026-09-10T10:00:00+0000" }, [
+          { id: "rA", author: { id: pageId }, createdTime: "2026-09-10T11:00:00+0000" },
+          { id: "rB", author: { id: "u1" }, createdTime: "2026-09-10T13:00:00+0000" },
+          { id: "rA1", author: { id: pageId }, createdTime: "2026-09-10T12:00:00+0000" },
+        ]),
+      ],
+      pageId,
+    )
+
+    expect(threads[0]!.status).toBe("needs_reply")
+  })
+
+  it("keeps the caller's order when Graph timed the replies incompletely", () => {
+    // An untimed reply must not sort to one end and change the answer. With no
+    // clock to read, the array order is the best available evidence and the
+    // last element stands — the pre-T-36 behaviour, kept exactly where it is
+    // still the only defensible one.
+    const { threads } = triageThreads(
+      [
+        thread({ id: "c1", author: { id: "u1" } }, [
+          { id: "r1", author: { id: "u2" } },
+          { id: "r2", author: { id: pageId } },
+        ]),
+      ],
+      pageId,
+    )
+
+    expect(threads[0]!.status).toBe("answered")
+  })
 })
 
 describe("triageThreads without author identity", () => {

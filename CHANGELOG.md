@@ -2,6 +2,30 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.8] — 2026-09-14
+
+### Fixed
+
+- **A thread with two branches could report `answered` while a customer was
+  waiting.** `comment_activity` assembles a thread from several Graph calls and
+  concatenated them as *every second-level reply, then every third-level one* —
+  regardless of when any of it was written. Triage then read the last element as
+  the most recent thing said. Where the Page had answered one branch and a
+  visitor later commented on another, the Page's older reply sorted last and the
+  thread was marked handled. The replies are now sorted by `created_time`, so
+  the conversation reads in the order it happened, and "who spoke last" is
+  answered from the timestamps rather than from array position. A reply Graph
+  timed incompletely keeps its incoming position rather than sorting to one end.
+
+  This is the same defect as 0.1.6, in the same direction, inside the code
+  0.1.6's fix was written into: a fix inherits the invariants of the code it
+  lands in, and "these replies are in time order" was never written down.
+
+> **This file skipped 0.1.3 through 0.1.7.** Those versions shipped — see the
+> tagged commits — and were never written up here. The entries below resume at
+> 0.1.2. Left as a visible gap rather than reconstructed from commit messages,
+> which would be a guess at what the releases meant to their author.
+
 ## [0.1.2] — 2026-09-09
 
 ### Changed

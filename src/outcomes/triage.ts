@@ -1,4 +1,4 @@
-import type { Thread } from "./threads.js"
+import { lastWord, type Thread } from "./threads.js"
 
 export type ThreadStatus = "needs_reply" | "answered" | "hidden"
 
@@ -48,14 +48,14 @@ export function triageThreads(
       // this triage is built on — over-surface rather than hide a waiting
       // customer — and `.some()` broke it in the one direction that matters.
       //
-      // Replies arrive chronologically (`order: "chronological"` in the
-      // client), so the last element is the most recent thing said.
-      const lastWord = thread.replies.at(-1)
-      const byPage =
-        lastWord === undefined
-          ? thread.comment.author?.id === pageId
-          : lastWord.author?.id === pageId
-      return { ...thread, status: byPage ? "answered" : "needs_reply" }
+      // "Last" is by the clock. It used to be `thread.replies.at(-1)`, resting
+      // on the replies arriving chronologically — true of any ONE Graph call
+      // (`order: "chronological"` in the client) and untrue of the thread
+      // activity.ts assembles from several. See `lastWord` and T-36.
+      return {
+        ...thread,
+        status: lastWord(thread).author?.id === pageId ? "answered" : "needs_reply",
+      }
     }
 
     return { ...thread, status: thread.replies.length > 0 ? "answered" : "needs_reply" }
