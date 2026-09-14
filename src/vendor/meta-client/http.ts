@@ -155,19 +155,30 @@ export function createTransport(options: TransportOptions): Transport {
    * is why this has never been a live hole — but the blast radius if that ever
    * stopped being true is the token itself, and the check is cheaper than the
    * argument about whether it is needed.
+   *
+   * It also carries the API version back to the pinned one. Live on 2026-09-14
+   * a request sent to v25.0 was answered with a `paging.next` on **v26.0**:
+   * Meta builds that URL and does not build it on the version you asked for.
+   * Followed as given, the pin stops applying at page 2 and one result set is
+   * assembled from two API versions — which is precisely what pinning exists to
+   * prevent, and `COMMENT_FIELDS` already notes a field that v26.0 does not
+   * document. Only the version segment is rewritten; the cursor is what makes
+   * the URL worth following and is preserved exactly.
    */
   function nextPageUrl(body: GraphListResponse): string | undefined {
     const next = body.paging?.next
     if (next === undefined) return undefined
-    if (new URL(next).origin !== new URL(GRAPH_API_HOST).origin) {
+    const url = new URL(next)
+    if (url.origin !== new URL(GRAPH_API_HOST).origin) {
       throw new MetaApiError({
         message:
-          `Refusing to follow paging.next to a different origin (${new URL(next).origin}). ` +
+          `Refusing to follow paging.next to a different origin (${url.origin}). ` +
           "The access token is only ever sent to the Graph API host.",
         status: 0,
       })
     }
-    return next
+    url.pathname = url.pathname.replace(/^\/v\d+\.\d+\//, `/${GRAPH_API_VERSION}/`)
+    return url.toString()
   }
 
   async function* pages(first: string): AsyncGenerator<GraphListResponse> {
