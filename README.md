@@ -288,7 +288,7 @@ see [Use the right target](#use-the-right-target).
 | `ad` | string, optional | — | Ad ID. Resolves the ad to the Page post behind it, then reads that post's comments. The only route to comments on an ad. Needs `ads_read`. |
 | `campaign` | string, optional | — | Campaign ID. Reads comments across every Page post behind the campaign's ads. Needs `ads_read`. |
 | `adAccount` | string, optional | — | Ad account ID (`act_…`). Lists that account's campaigns by name and status and reads no comments — the rung between orientation and a sweep. Needs `ads_read`. |
-| `filter` | enum, optional | `"needs_reply"` | One of `needs_reply`, `unanswered`, `hidden`, `all`. `needs_reply` and `unanswered` are the same filter: no reply has come from the Page. |
+| `filter` | enum, optional | `"needs_reply"` | One of `needs_reply`, `unanswered`, `hidden`, `all`. `needs_reply` and `unanswered` are the same filter: **the Page does not have the last word** in the thread. A thread the Page answered and the visitor then came back to still needs a reply. |
 | `groupBy` | enum, optional | `"post"` | One of `post`, `author`, `status`, `day`, `none`. Each group carries its own counts. |
 | `since` | string, optional | 30 days ago | `YYYY-MM-DD`. Filters the Page's post sweep server-side; only applies to a `page` target. |
 | `maxThreads` | number, optional | `100` | 1–500. Cap on returned threads, applied after filtering, newest first. Pagination against Graph is handled internally. |
@@ -426,7 +426,12 @@ author display name, a post's own message — comes back inside a `text` or
 response ever carries a plain `message` key: that is the delimiter described
 under [Prompt injection](#prompt-injection). `statusBasis` records which
 question `needsReply` actually answered — see
-[Known limitations](#known-limitations). When the response is large, some
+[Known limitations](#known-limitations). A thread's `status` is `answered` only
+when the **most recent** thing said in it came from the Page: threads run deeper
+than one level, and the visitor who replies to your reply is still waiting.
+Replies are returned in the order they were written, across every level, and
+"most recent" is read from `created_time` rather than from their position in the
+array. When the response is large, some
 threads come back with their structure (id, status, counts, timestamps) but
 without their text, marked `abbreviated: true`, and `partial` is `true`; the
 `notes` array says how many and why.
