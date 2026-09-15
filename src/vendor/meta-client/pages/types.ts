@@ -24,6 +24,20 @@ export interface RawPost {
   is_published?: boolean
 }
 
+/**
+ * A photo on a Page, read only for the post it belongs to.
+ *
+ * `page_story_id` is the `{page-id}_{post-id}` of the post the photo was
+ * published in. It exists here for one purpose: a photo can be reachable when
+ * the post carrying it is not, and comparing the two is the only way this
+ * client can notice that it is being shown less than the Page holds. See T-37.
+ */
+export interface RawPhoto {
+  id: string
+  created_time?: string
+  page_story_id?: string
+}
+
 export interface RawComment {
   id: string
   message?: string
@@ -74,6 +88,13 @@ export interface PageCredentials {
   usable: PageCredential[]
   /** Page ids Graph listed and withheld a token for. Carries no secret. */
   tokenless: string[]
+}
+
+/** A Page photo, normalized. `postId` is the post it was published in. */
+export interface PagePhoto {
+  id: string
+  createdTime?: string
+  postId?: string
 }
 
 export interface PagePost {

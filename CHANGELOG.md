@@ -2,6 +2,41 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.10] — 2026-09-15
+
+### Added
+
+- **The answer now says when this Page holds posts your credentials cannot
+  read.** Facebook does not return a post to an app other than the one that
+  published it — confirmed by reading one Page with two Page tokens belonging to
+  different apps and checking both lists against the publishing tool's own
+  records: five posts for five, the two published through another app visible
+  only to that app's token. There is no error and no gap; the list is simply
+  shorter. So if you schedule through Buffer, Hootsuite, Later, Business Suite
+  or your own tooling, those posts and their comments were silently absent.
+
+  A `page` sweep now reads the Page's photos, which stay reachable when the post
+  holding them does not and which name that post, then asks whether each named
+  post is actually readable. Refusals are reported in `notes` with `partial:
+  true`. **The count is a minimum** — a text-only post leaves no photo behind
+  and cannot be detected at all, so the absence of this note is not a promise
+  that nothing is missing.
+
+  Absence from the feed is deliberately not treated as evidence on its own: a
+  Page's cover photo names a post id the feed does not list it under, and
+  counting that produced the right total for the wrong reason before the check
+  was made to probe readability instead.
+
+- `photos.forPage` in the vendored Meta client. It requests no image data; it
+  exists to name posts, not to render them.
+
+### Changed
+
+- **Known limitations** gained the above as a *cannot do at all*, and lost the
+  claim that pagination has never run against real Graph — that stopped being
+  true on 2026-09-14, when 101 comments were read back through `paging.next`
+  across more than one request on the pinned API version.
+
 ## [0.1.9] — 2026-09-15
 
 ### Fixed

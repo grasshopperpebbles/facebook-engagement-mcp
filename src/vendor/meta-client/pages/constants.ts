@@ -23,6 +23,15 @@ export const POST_FIELDS = [
   "is_published",
 ] as const
 
+/**
+ * Enough to answer "which post does this photo belong to", and nothing else.
+ *
+ * No image sources: this edge is read to COUNT posts the feed withheld, never
+ * to render anything, and a `media` selection would pull several kilobytes of
+ * CDN URLs per photo for a number.
+ */
+export const PHOTO_FIELDS = ["id", "created_time", "page_story_id"] as const
+
 export const COMMENT_FIELDS = [
   "id",
   "message",

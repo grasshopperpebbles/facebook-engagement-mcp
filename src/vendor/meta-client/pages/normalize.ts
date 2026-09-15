@@ -1,4 +1,13 @@
-import type { Comment, Page, PagePost, RawComment, RawPage, RawPost } from "./types.js"
+import type {
+  Comment,
+  Page,
+  PagePhoto,
+  PagePost,
+  RawComment,
+  RawPage,
+  RawPhoto,
+  RawPost,
+} from "./types.js"
 
 export function normalizePage(raw: RawPage): Page {
   return {
@@ -16,6 +25,14 @@ export function normalizePost(raw: RawPost): PagePost {
     ...(raw.created_time !== undefined && { createdTime: raw.created_time }),
     ...(raw.permalink_url !== undefined && { permalink: raw.permalink_url }),
     isPublished: raw.is_published ?? true,
+  }
+}
+
+export function normalizePhoto(raw: RawPhoto): PagePhoto {
+  return {
+    id: raw.id,
+    ...(raw.created_time !== undefined && { createdTime: raw.created_time }),
+    ...(raw.page_story_id !== undefined && { postId: raw.page_story_id }),
   }
 }
 

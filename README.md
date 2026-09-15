@@ -754,16 +754,43 @@ something not fully tested.
    that failure at least is not swallowed: the response marks itself `partial`
    and `notes` says which post and why, rather than reporting a confident zero.
 
+2. **Facebook will not show you a post that another app published — and the
+   comments on it go with it.** A Page post is returned to the app that
+   published it and not to others. Confirmed on 2026-09-15 by reading one Page
+   with two Page tokens belonging to different apps and checking both lists
+   against the publishing tool's own records: five posts for five, the two
+   published through another app visible only to that app's token. The
+   withheld post is not merely missing from the sweep — it cannot be read by id
+   either, so naming it with a `post` target does not help.
+
+   **What this means for you:** if you schedule or publish through anything
+   other than this server — Buffer, Hootsuite, Later, Meta's own Business
+   Suite scheduler, your own tooling — those posts and every comment on them
+   are absent from the answer. There is no error. The list is simply shorter.
+
+   **The server tells you when it can detect it.** The photos inside a withheld
+   post stay reachable and name the post they belong to, so a `page` sweep reads
+   them, asks whether each named post is readable, and reports the refusals in
+   `notes` with `partial: true`. **The count is a minimum**: a text-only post
+   leaves no photo behind and cannot be detected at all, so "no such note" does
+   not mean "nothing is missing".
+
+   Comments on **ads** are unaffected: an `ad` or `campaign` target resolves the
+   post through the Marketing API rather than through the Page's feed.
+
 ### What works, but is trusted further than it has been tested
 
-2. **Pagination has never run against real Graph.** Every live response so far
-   fitted a single page, so `paging.next` and the truncation path have only ever
-   executed against fixtures. If you have a Page with more than 100 posts, or a
-   post with more than 25 comments, you are the first — the code is reviewed and
-   unit-tested, not proven. Fixture *values* are synthetic throughout; only the
-   *shapes* have been matched against live responses. See `fixtures/README.md`.
+3. **Fixture values are synthetic.** Fixture *shapes* have been matched against
+   live responses; the values in them are invented. See `fixtures/README.md`.
 
-3. **Facebook tells you who a Page is and will not tell you who a person is.**
+   Pagination is no longer on this list. It said here for weeks that
+   `paging.next` had never run against real Graph, and that stopped being true
+   on 2026-09-14: a corpus of 101 comments was built on a Page and read back
+   through the client, following `paging.next` across more than one request, on
+   the pinned API version. The truncation path and the refusal to return a
+   silently short list ran with it.
+
+4. **Facebook tells you who a Page is and will not tell you who a person is.**
    A comment written by a **Page** comes back with `from: { name, id }`. A
    comment written by a **person** comes back with no `from` at all — confirmed
    against live Graph on 2026-09-15 across three Pages and three people,
@@ -787,7 +814,7 @@ something not fully tested.
    threads as `answered`. Every response still reports `statusBasis`,
    `"author_identity"` or `"reply_count"`; check it before trusting the detail.
 
-4. **Your own Pages work in development mode; other people's need App Review.**
+5. **Your own Pages work in development mode; other people's need App Review.**
    The permissions in the table above have been exercised live against a real
    app and a real token — `debug_token` scopes, `/me/accounts` tasks, reads,
    writes and ad resolution all ran on 2026-09-08. What has *not* been tested is

@@ -29,7 +29,14 @@ export {
   type PagesClient,
   type PostListOptions,
 } from "./pages/index.js"
-export type { Comment, Page, PageCredential, PageCredentials, PagePost } from "./pages/types.js"
+export type {
+  Comment,
+  Page,
+  PageCredential,
+  PageCredentials,
+  PagePhoto,
+  PagePost,
+} from "./pages/types.js"
 export * from "./types.js"
 
 export interface ListOptions {

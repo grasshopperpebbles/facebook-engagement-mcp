@@ -143,6 +143,21 @@ const DEFAULT_SINCE_DAYS = 30
 /** Posts scanned per Page sweep. Pagination is internal; no cursor is exposed. */
 const MAX_POSTS = 50
 /**
+ * Photos read to detect posts the feed withheld (T-37).
+ *
+ * One extra request per Page sweep, and it buys the difference between a short
+ * answer and a short answer that says it is short.
+ */
+const MAX_PHOTOS_FOR_GAP_CHECK = 100
+/**
+ * Candidate posts actually probed before being called unreadable.
+ *
+ * Each costs a request, and the count is normally zero or one. The cap is here
+ * so a Page whose photos name fifty unswept stories cannot turn one sweep into
+ * fifty-one requests.
+ */
+const MAX_GAP_PROBES = 10
+/**
  * Comments read per post before triage.
  *
  * Deliberately *not* `maxThreads`: spec §3 makes `maxThreads` a returned-volume
@@ -624,6 +639,81 @@ export async function runCommentActivity(
         "author information for comments written by a person, so this is the ordinary case for a " +
         "customer waiting on you, not a fault.",
     )
+  }
+
+  // T-37: say when the Page holds posts this token cannot read.
+  //
+  // A post published through one app is not readable by another app's Page
+  // token — confirmed 2026-09-15 by diffing two tokens on one Page against the
+  // publishing tool's own records, five posts for five. There is no error and
+  // no gap in the response; the list is simply shorter, which is the worst way
+  // for a triage tool to be wrong.
+  //
+  // It is detectable because the withheld post's PHOTOS stay reachable, and
+  // every photo names its post in `page_story_id`. So any story id the photos
+  // edge knows and the sweep never saw is a post this token cannot read. That
+  // is how the 11 September post was found at all.
+  //
+  // What this does NOT catch: a text post, which leaves no media behind. So the
+  // count is a floor, and the note says so rather than implying it is complete.
+  // Under-claiming here is the safe direction — the alternative is telling
+  // somebody the sweep was complete when nothing can establish that.
+  if (target.kind === "page") {
+    try {
+      const { items: photos } = await client.photos.forPage(target.id, {
+        maxItems: MAX_PHOTOS_FOR_GAP_CHECK,
+      })
+      const swept = new Set(posts.map((post) => post.id))
+      const candidates = [
+        ...new Set(
+          photos
+            .map((photo) => photo.postId)
+            .filter((postId): postId is string => postId !== undefined && !swept.has(postId)),
+        ),
+      ]
+
+      // Absent from the sweep is NOT the same as unreadable, and assuming it
+      // was made this check wrong on the first Page it ran against: a Page's
+      // cover photo names a `page_story_id` that `/feed` does not list the post
+      // under, so it looked like a withheld post and read back with a plain
+      // 200. The count came out right for the wrong reason, which is worse than
+      // coming out wrong.
+      //
+      // So each candidate is asked the question that actually matters — can
+      // this token read the post's comments — and only a refusal counts. A
+      // readable post with no comments answers with an empty list, which is a
+      // success and is not counted.
+      const unreadable: string[] = []
+      for (const postId of candidates.slice(0, MAX_GAP_PROBES)) {
+        try {
+          await client.comments.forPost(postId, { maxItems: 1 })
+        } catch {
+          unreadable.push(postId)
+        }
+      }
+
+      if (unreadable.length > 0) {
+        partial = true
+        notes.push(
+          `At least ${unreadable.length} post(s) on this Page could not be read with these ` +
+            "credentials and are missing from this answer, along with any comments on them. " +
+            "Facebook does not return a post to an app other than the one that published it, so " +
+            "posts scheduled or published through another tool are invisible here. This count " +
+            "is a minimum: these were found through the photos those posts contain, so a " +
+            "text-only post cannot be detected at all.",
+        )
+      }
+    } catch (cause) {
+      // Never fail the answer over the check on the answer. A token without
+      // access to the photos edge still gets its comments; it just does not get
+      // told what it is missing.
+      notes.push(
+        `Could not check whether this Page holds posts these credentials cannot read: ${explainGraphError(
+          cause,
+          { operation: "read", pageId: target.id },
+        )}`,
+      )
+    }
   }
 
   if (usedUserToken) {

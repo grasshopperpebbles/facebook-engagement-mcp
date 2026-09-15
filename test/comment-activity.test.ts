@@ -553,6 +553,123 @@ describe("runCommentActivity", () => {
     expect(Number(limit)).toBeGreaterThan(1)
   })
 
+  it("reports posts this token cannot read, found through their photos (T-37)", async () => {
+    // The shape confirmed live on 2026-09-15: two Page tokens on one Page
+    // return different post lists, because a post published through one app is
+    // not returned to another app's token. The response is not wrong, it is
+    // SHORT — no error, no gap, just fewer posts — which for a triage tool is
+    // the worst way to be wrong.
+    //
+    // The photos of the withheld post stay reachable and name it in
+    // `page_story_id`, so the sweep can count what it was not shown.
+    const fetchImpl = vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+      if (pathname.endsWith("/photos")) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              // Belongs to a post the feed DID return: not a gap.
+              { id: "ph1", page_story_id: "pg1_p1" },
+              // Belongs to a post the feed did not return, twice over — two
+              // photos of one post must count once.
+              { id: "ph2", page_story_id: "pg1_hidden" },
+              { id: "ph3", page_story_id: "pg1_hidden" },
+              // Absent from the sweep and READABLE. This is the case that made
+              // the first version of this check wrong on the first real Page it
+              // ran against: a cover photo names a `page_story_id` the feed
+              // does not list the post under, and counting it produced the
+              // right total for the wrong reason. It must not be counted.
+              { id: "ph4", page_story_id: "pg1_elsewhere" },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      if (pathname.endsWith("/pg1_hidden/comments")) {
+        return new Response(
+          JSON.stringify({ error: { message: "nope", type: "GraphMethodException", code: 100 } }),
+          { status: 400 },
+        )
+      }
+      return new Response(JSON.stringify({ data: [] }), { status: 200 })
+    })
+
+    const result = await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+    const activity = result as { notes: string[]; partial: boolean }
+
+    // One, not two: `pg1_elsewhere` is absent from the sweep and readable.
+    expect(activity.notes.join(" ")).toContain("At least 1 post(s)")
+    expect(activity.notes.join(" ")).toContain("published through another tool")
+    // A short answer is a partial answer, and must say so in the flag as well
+    // as in the prose.
+    expect(activity.partial).toBe(true)
+  })
+
+  it("stays silent when every photo belongs to a post the sweep saw", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+      if (pathname.endsWith("/photos")) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              { id: "ph1", page_story_id: "pg1_p1" },
+              // Not swept, but readable — so not a gap. Absence from the feed
+              // is not the same fact as being unreadable.
+              { id: "ph2", page_story_id: "pg1_elsewhere" },
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      return new Response(JSON.stringify({ data: [] }), { status: 200 })
+    })
+
+    const result = await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+    const activity = result as { notes: string[] }
+
+    expect(activity.notes.join(" ")).not.toContain("could not be read with these credentials")
+  })
+
+  it("still answers when the photos edge refuses (T-37)", async () => {
+    // The check on the answer must never cost the answer. A token without the
+    // photos edge gets its comments; it simply is not told what it is missing.
+    const fetchImpl = vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+      if (pathname.endsWith("/photos")) {
+        return new Response(
+          JSON.stringify({ error: { message: "nope", type: "OAuthException", code: 10 } }),
+          { status: 403 },
+        )
+      }
+      return new Response(JSON.stringify({ data: [] }), { status: 200 })
+    })
+
+    const result = await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+
+    // The discriminator is that an ANSWER came back rather than an error — the
+    // posts were swept and triaged. How many threads it found is the stub's
+    // business, not this test's.
+    expect(result).not.toHaveProperty("error")
+    expect(result).toHaveProperty("groups")
+    const activity = result as { notes: string[] }
+    expect(activity.notes.join(" ")).toContain("Could not check whether this Page holds posts")
+  })
+
   it(
     "notes when some threads in the final set lack author identity, " +
       "without downgrading the basis",
