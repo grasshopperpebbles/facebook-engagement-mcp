@@ -6,10 +6,10 @@ upstream in gpp-mcp, followed by `npm run extract`.
 | | |
 |---|---|
 | Source | `grasshopperpebbles/gpp-mcp` |
-| Commit | `41991ade9f226389f2e0fa1905fd528afdc0747c` |
+| Commit | `0d21a12f15ab2f85abb37e46ad1db0274f487ee3` |
 | Extracted | 2026-09-15 |
 
-Copied: constants.ts, http.ts, errors.ts, types.ts, index.ts, pages/ and 7 test files.
+Copied: constants.ts, http.ts, errors.ts, types.ts, index.ts, pages/ and 8 test files.
 
 Everything under `src/` is copied, including the Marketing API surface, which
 this package uses to resolve an ad to the Page post behind it. Nothing here is

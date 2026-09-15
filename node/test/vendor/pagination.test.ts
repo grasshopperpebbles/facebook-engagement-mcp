@@ -156,3 +156,61 @@ describe("paging.next API version", () => {
     expect(String(fetchImpl.mock.calls[1]?.[0])).toBe(next)
   })
 })
+
+describe("the Graph origin override (T-43 step 2)", () => {
+  /**
+   * The override exists so the conformance suite can point any implementation at
+   * a recorded-response stub — TypeScript can inject `fetchImpl`, Python and Go
+   * cannot, and a different seam per language gives up the single definition of
+   * equality the suite is for.
+   *
+   * What these assert is the property that makes it safe to ship: **the origin
+   * requests go to and the origin `paging.next` is pinned to are one value.**
+   * Configure them separately and the pin drifts off the host, which is exactly
+   * the hole the 2026-09-08 review closed.
+   */
+  it("sends requests to the overridden origin", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(page([{ id: "1" }]))
+
+    await createTransport({
+      accessToken: "t",
+      fetchImpl,
+      graphOrigin: "http://stub.local:8080",
+    }).getAll("/act_1/campaigns")
+
+    expect(fetchImpl.mock.calls[0]?.[0]).toContain("http://stub.local:8080/v")
+  })
+
+  it("moves the paging.next pin WITH the origin, not independently of it", async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ id: "1" }], "http://stub.local:8080/v25.0/next"))
+      .mockResolvedValueOnce(page([{ id: "2" }]))
+
+    const all = await createTransport({
+      accessToken: "t",
+      fetchImpl,
+      graphOrigin: "http://stub.local:8080",
+    }).getAll("/act_1/campaigns")
+
+    expect(all).toHaveLength(2)
+  })
+
+  it("still refuses a foreign origin when overridden — including the REAL Graph host", async () => {
+    // The direction that would be easy to get wrong: pointing at a stub must not
+    // make graph.facebook.com an acceptable place to send a stub's token. There
+    // is one permitted origin at a time, never a permitted set.
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(page([{ id: "1" }], "https://graph.facebook.com/v25.0/next"))
+
+    const transport = createTransport({
+      accessToken: "t",
+      fetchImpl,
+      graphOrigin: "http://stub.local:8080",
+    })
+
+    await expect(transport.getAll("/act_1/campaigns")).rejects.toThrow(/origin/i)
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+})

@@ -2,6 +2,41 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.14] — 2026-09-15
+
+### Changed
+
+- **The repository now has a folder per language, and this package lives in
+  `node/`** (T-43). Nothing about the bundle changed: same tools, same install,
+  same behaviour. `docs/` and `fixtures/` deliberately stayed at the repository
+  root — the documents describe Meta's console and Graph's behaviour, and the
+  fixtures are recorded Graph responses, so neither is about TypeScript and both
+  are shared with every implementation to come.
+
+  The `.mcpb` remains Node-only by decision: Claude Desktop ships a Node runtime,
+  which is the whole reason a double-clickable installer is possible here and not
+  elsewhere. Other languages will ship as their own language's package.
+
+- **The vendored Graph client gained an origin override**, so a client can be
+  pointed at a recorded-response stub. It carries no default and is unreachable
+  from the install form: `META_GRAPH_ORIGIN` applies only when
+  `META_ALLOW_GRAPH_ORIGIN_OVERRIDE` is exactly `"true"`, neither variable
+  appears in `mcpb/manifest.json`, and an origin set without the opt-in throws
+  rather than being quietly ignored.
+
+  **The origin requests go to and the origin `paging.next` is pinned to are one
+  value**, which is the point rather than a detail. The pin exists because the
+  access token is attached when following `next`; one value means pointing at a
+  stub moves the pin with it and cannot widen it. Overridden to a stub, the
+  client refuses a `paging.next` pointing at the real Graph host.
+
+### Fixed
+
+- **Six links from this README into `docs/` broke when it moved**, and are
+  repointed. A new repository-wide check resolves every relative Markdown link
+  against the working tree, so the next move fails a test rather than an
+  installed user's click.
+
 ## [0.1.13] — 2026-09-15
 
 ### Fixed

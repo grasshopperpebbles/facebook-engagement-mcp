@@ -13,6 +13,79 @@ export const GRAPH_API_VERSION = "v25.0"
 
 export const GRAPH_API_HOST = "https://graph.facebook.com"
 
+/** Set to the stub's origin. Meaningless unless the variable below is `"true"`. */
+export const GRAPH_ORIGIN_ENV = "META_GRAPH_ORIGIN"
+/** The opt-in. Without it the variable above is an error, never a default. */
+export const GRAPH_ORIGIN_ALLOW_ENV = "META_ALLOW_GRAPH_ORIGIN_OVERRIDE"
+
+/**
+ * The origin every Graph request goes to, and the only origin `paging.next` may
+ * point at.
+ *
+ * **Those are deliberately one value rather than two**, which is the whole
+ * security content of this function. The 2026-09-08 review pinned `paging.next`
+ * to the Graph origin because the access token is attached when following it, so
+ * a `next` pointing somewhere else is a credential-exfiltration shape and the
+ * blast radius is the token. Nothing here weakens that: point the client at a
+ * stub and it will still refuse to follow `next` anywhere but that same stub.
+ * Two independently-configured values would let the pin drift off the host, so
+ * the override returns one string that both jobs read.
+ *
+ * **Why it exists at all.** The conformance suite (T-44) drives each
+ * implementation as a subprocess over MCP stdio and serves it recorded Graph
+ * responses, so every implementation needs one way to be pointed at a stub.
+ * TypeScript can already dodge this by injecting `fetchImpl`; Python and Go
+ * cannot, and inventing a different seam per language gives up the single
+ * definition of equality the suite exists for.
+ *
+ * **Two variables, not one, and the second is not a formality.** A value that
+ * silently applied would be a way to send a live token somewhere unexpected by
+ * setting one variable. A value that were silently *ignored* would be worse in
+ * the other direction: a test that believes it is talking to a stub and is in
+ * fact talking to Graph with a real token. So an origin set without the opt-in
+ * **throws** rather than being ignored — the failure is loud and happens before
+ * any request is made.
+ *
+ * This is **not** loopback-restricted, and that was a deliberate reversal. An
+ * earlier draft required loopback, which would have passed every test on this
+ * machine and failed the first containerised conformance run: inside a container
+ * `127.0.0.1` is the container's own loopback, not the host's, so the stub is
+ * reached at a service name or `host.docker.internal`. A rule that holds only
+ * where it is checked is the shape of a check that cannot fail.
+ *
+ * Neither variable appears in `mcpb/manifest.json`, so neither is reachable from
+ * the install form. That is the property that matters — as with the removal of
+ * `confirmed: true`, the point is not that it is hard to switch on but that the
+ * people and models who should not switch it on *cannot*.
+ */
+export function resolveGraphOrigin(env: Record<string, string | undefined>): string {
+  const origin = env[GRAPH_ORIGIN_ENV]
+  if (origin === undefined || origin === "") return GRAPH_API_HOST
+
+  if (env[GRAPH_ORIGIN_ALLOW_ENV] !== "true") {
+    throw new Error(
+      `${GRAPH_ORIGIN_ENV} is set but ${GRAPH_ORIGIN_ALLOW_ENV} is not "true", so it was ` +
+        "refused rather than ignored. Ignoring it would send this token to the real Graph API " +
+        `while you believed it was going to ${origin}. Set ${GRAPH_ORIGIN_ALLOW_ENV}=true if ` +
+        "that is what you meant; this override exists for the conformance suite.",
+    )
+  }
+
+  let parsed: URL
+  try {
+    parsed = new URL(origin)
+  } catch {
+    throw new Error(`${GRAPH_ORIGIN_ENV} is not a valid URL: ${origin}`)
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new Error(`${GRAPH_ORIGIN_ENV} must be http or https, got ${parsed.protocol}`)
+  }
+  // The origin alone. A path here would be silently dropped when building
+  // request URLs and silently kept when comparing `paging.next`, so the two jobs
+  // would stop agreeing — which is the one thing this function exists to prevent.
+  return parsed.origin
+}
+
 /**
  * Field selections ported from the Python reference. These encode which Graph
  * fields are actually useful per resource — the main thing worth carrying over

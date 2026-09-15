@@ -53,6 +53,11 @@ const TEST_FILES = [
   "pages-normalize.test.ts",
   "client.test.ts",
   "regressions.test.ts",
+  // Guards the Graph origin override, which decides where a live access token
+  // may be sent. The code came across with the client, so the tests must too —
+  // vendoring a safety-critical function without its assertions leaves this
+  // package holding the risk and none of the evidence.
+  "graph-origin.test.ts",
 ]
 
 function fail(message) {

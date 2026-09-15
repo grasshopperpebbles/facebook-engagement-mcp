@@ -5,9 +5,9 @@ import {
   DEFAULT_RETRY_ATTEMPTS,
   DEFAULT_RETRY_BASE_MS,
   DEFAULT_TIMEOUT_MS,
-  GRAPH_API_HOST,
   GRAPH_API_VERSION,
   MAX_PAGE_SIZE,
+  resolveGraphOrigin,
 } from "./constants.js"
 import { type GraphErrorBody, MetaApiError } from "./errors.js"
 
@@ -29,6 +29,13 @@ export interface TransportOptions {
   retry?: { maxAttempts?: number; baseDelayMs?: number }
   /** Injectable for tests, so backoff costs no wall-clock time. */
   sleepImpl?: (ms: number) => Promise<void>
+  /**
+   * The Graph origin, for the conformance suite's stub. Defaults to the real
+   * one, or to `META_GRAPH_ORIGIN` when that is explicitly allowed — see
+   * `resolveGraphOrigin`. Whatever this is, it is ALSO the only origin
+   * `paging.next` may point at.
+   */
+  graphOrigin?: string
 }
 
 export interface PageOptions {
@@ -60,8 +67,12 @@ export interface Transport {
   post<T = unknown>(path: string, params: Record<string, string>): Promise<T>
 }
 
-function buildUrl(path: string, params: Record<string, string | number | undefined> = {}): string {
-  const url = new URL(`/${GRAPH_API_VERSION}${path}`, GRAPH_API_HOST)
+function buildUrl(
+  origin: string,
+  path: string,
+  params: Record<string, string | number | undefined> = {},
+): string {
+  const url = new URL(`/${GRAPH_API_VERSION}${path}`, origin)
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) url.searchParams.set(key, String(value))
   }
@@ -93,6 +104,9 @@ export function createTransport(options: TransportOptions): Transport {
     throw new Error("A Meta access token is required")
   }
 
+  // Resolved once per transport, and read by BOTH the URL builder and the
+  // `paging.next` pin below — they cannot disagree, which is the point.
+  const graphOrigin = options.graphOrigin ?? resolveGraphOrigin(process.env)
   const fetchImpl: FetchImpl = options.fetchImpl ?? ((url, init) => fetch(url, init))
   const maxAttempts = options.retry?.maxAttempts ?? DEFAULT_RETRY_ATTEMPTS
   const baseDelayMs = options.retry?.baseDelayMs ?? DEFAULT_RETRY_BASE_MS
@@ -169,11 +183,11 @@ export function createTransport(options: TransportOptions): Transport {
     const next = body.paging?.next
     if (next === undefined) return undefined
     const url = new URL(next)
-    if (url.origin !== new URL(GRAPH_API_HOST).origin) {
+    if (url.origin !== new URL(graphOrigin).origin) {
       throw new MetaApiError({
         message:
           `Refusing to follow paging.next to a different origin (${url.origin}). ` +
-          "The access token is only ever sent to the Graph API host.",
+          `The access token is only ever sent to ${graphOrigin}.`,
         status: 0,
       })
     }
@@ -192,7 +206,7 @@ export function createTransport(options: TransportOptions): Transport {
 
   const transport: Transport = {
     async get<T>(path: string, params?: Record<string, string | number | undefined>): Promise<T> {
-      return (await request(buildUrl(path, params))) as T
+      return (await request(buildUrl(graphOrigin, path, params))) as T
     },
 
     async getPage<T>(path: string, pageOptions: PageOptions = {}): Promise<PagedResult<T>> {
@@ -205,7 +219,7 @@ export function createTransport(options: TransportOptions): Transport {
       const items: T[] = []
       let truncated = false
 
-      for await (const body of pages(buildUrl(path, { ...params, limit }))) {
+      for await (const body of pages(buildUrl(graphOrigin, path, { ...params, limit }))) {
         for (const item of body.data ?? []) {
           if (maxItems !== undefined && items.length >= maxItems) return { items, truncated: true }
           items.push(item as T)
@@ -245,7 +259,7 @@ export function createTransport(options: TransportOptions): Transport {
       const headers = await authHeaders()
       let response: Response
       try {
-        response = await fetchImpl(buildUrl(path), {
+        response = await fetchImpl(buildUrl(graphOrigin, path), {
           method: "POST",
           headers: { ...headers, "content-type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams(params).toString(),
