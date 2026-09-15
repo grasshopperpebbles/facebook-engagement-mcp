@@ -135,20 +135,41 @@ It needs a second use case on the same app. Walked on screen, 2026-09-08:
 3. **Save.** The dialog warns that not every use case can share an app; this
    pair can. Both then appear under *App customization and requirements*.
 4. Open **Customize the Measure ad performance data with Marketing API use
-   case**. `ads_read` is already listed there, at **Ready for testing** — which
-   means development mode works on your own assets without App Review, exactly
-   as with the Pages permissions. `ads_management` sits beside it; leave it
-   alone.
+   case**. Look at the permissions list. `ads_read` is already listed there, at
+   **Ready for testing** — which means development mode works on your own
+   assets without App Review, exactly as with the Pages permissions.
+   `ads_management` sits beside it; leave it alone. You do not tick a box or
+   press Add — selecting the use case in steps 1–3 already attached `ads_read`
+   to the app.
 
-So there is nothing to *add* at step 4 — the use case brings it. What remains
-is minting a token that carries it, which is the trap from the top of this
-section: a token issued before the use case existed does not gain the scope.
-Re-mint from **Tools → Graph API Explorer**.
+**Step 4 is a confirmation, not an action.** The use case brings `ads_read`.
+What remains is getting that scope onto a *token*. Adding a use case (or a
+permission) to the app does not rewrite tokens you already have. A user token
+minted before the Marketing use case existed still lacks `ads_read`, even when
+the dashboard shows the permission as Ready for testing. That is the same trap
+as at the top of this section.
 
-Skip all of this and everything else in the article still works. Only the ad
-path stops — and a token that cannot read your ad account is a smaller thing to
-hand out, which is a fair reason to leave it off a token that will only ever
-sweep Pages.
+To put `ads_read` on a token:
+
+1. Open **Tools → Graph API Explorer**.
+2. Select your app.
+3. Under **User or Page**, stay on your **user** (not a Page) — `ads_read` is a
+   user-token scope; the Marketing API does not use Page tokens for this.
+4. Ensure `ads_read` is among the permissions you request, then click
+   **Generate Access Token** and complete the consent dialog.
+5. Confirm with `debug_token` (Step 4 below) that `ads_read` appears in
+   `scopes`.
+
+**You can skip this whole subsection.** Page comment reads do not need
+`ads_read`. Everything else in this article still works without it. What fails
+is only the ad path — resolving an ad to the unpublished post behind it, as
+covered in the companion article on dark posts. Leaving `ads_read` off is also
+a deliberate security choice: it is the **user** token that talks to your ad
+account (`/me/adaccounts`, campaigns, creatives). A user token without
+`ads_read` cannot read that account. The Page token is not involved in that
+check — it never reads the ad account; it only reads comments once you already
+have a post id. If the user token will only ever drive Page sweeps, that
+smaller blast radius is a fair reason to omit `ads_read`.
 
 ## Step 2: Confirm the Page is actually reachable
 
@@ -156,8 +177,44 @@ sweep Pages.
 whole class of confusion starts, because **the Pages the API returns and the
 Pages you administer in the UI are not always the same set.**
 
-Business Portfolio structure, Page ownership, and how a Page was created all
-affect what enumerates. I've hit two distinct versions of this:
+### Error 2500 before you get a list at all
+
+If you type `me/accounts` (or `/me/accounts`) in the Graph API Explorer and
+get this:
+
+```json
+{
+  "error": {
+    "message": "An active access token must be used to query information about the current user.",
+    "type": "OAuthException",
+    "code": 2500,
+    "fbtrace_id": "ARcajsCKxEzS8dLOkFSHRPh"
+  }
+}
+```
+
+Graph is refusing the call because `/me` means **the current user**, and the
+request does not carry a usable **user** access token. This is not a missing
+Page, a stale grant, or a missing `pages_show_list` — those fail differently
+(or return a partial list). Fix the token first.
+
+The usual causes in the Explorer, in the order to check them:
+
+1. **No token yet.** The Access Token field at the top is empty. Click
+   **Generate Access Token**, complete the login/consent dialog, then submit
+   the query again.
+2. **A Page is selected under User or Page.** `/me/accounts` lists Pages
+   managed by a *person*. A Page access token is not a user identity, so Meta
+   treats the call as having no active token for the current user. Switch the
+   dropdown back to your **user**, generate a user token if the field cleared,
+   and retry. (You need the user token here anyway — that is how you obtain
+   each Page's token from the response.)
+3. **Expired or invalid token.** Short-lived Explorer tokens die in about an
+   hour. Generate a fresh user token and retry.
+
+Once the call succeeds, interpret the list. Business Portfolio structure, Page
+ownership, and how a Page was created all affect what enumerates. I've hit two
+distinct versions of this:
 
 - The Page the API Couldn't See —
   Graph returned five Pages; I administer seven, and one of the missing ones was
@@ -571,8 +628,15 @@ The setup above is the resolution to a series of things that went wrong first:
 - A **user access token returns an empty array** for comments. You need a Page
   access token from `/me/accounts`. This single fact explains most "the API
   returns nothing" reports.
+- **Error 2500** (`An active access token must be used to query information
+  about the current user`) on `/me/accounts` means the Explorer has no usable
+  **user** token — empty field, Page selected in User or Page, or expired.
+  Generate a user token and retry; this is not a missing-Page problem.
 - Selecting a **use case is not granting a permission**, and a token minted
   before you added a permission does not carry it. Verify with `debug_token`.
+  For ads: the Marketing use case already lists `ads_read` — you still must
+  re-mint a **user** token that requests it. Skip `ads_read` if you only
+  sweep Pages.
 - **You cannot name the app after the platform.** `Facebook`, `Meta` and their
   near-variants are rejected. Name it for the job it does — the name is also
   something App Review weighs later.
