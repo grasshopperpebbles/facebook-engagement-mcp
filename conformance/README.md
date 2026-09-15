@@ -8,15 +8,26 @@ node conformance/run.mjs node               # just one
 node conformance/run.mjs --case the-page-must-have-the-last-word
 ```
 
-The Node implementation must be built first (`cd node && npm run build`) — the
-suite drives the **built** artefact, never the source, for the reason in
-*Against the thing people get* below.
+Each implementation must be built first — the suite drives the **built**
+artefact, never the source, for the reason in *Against the thing people get*
+below:
+
+```bash
+(cd node && npm run build)                              # node
+(cd python && uv sync) && docker build -t fbe-python:dev python/
+(cd go && go build -o bin/facebook-engagement-mcp ./cmd/facebook-engagement-mcp)
+docker build -t fbe-go:dev go/                          # go
+```
+
+An entry whose artefact is missing **skips and says so** rather than failing, so
+a developer without every toolchain still gets a useful run. In CI it is named,
+and a named entry that is missing fails — see *In CI*.
 
 ## What this is for
 
 Nothing copies code between languages. `node/scripts/extract.mjs` vendors the
 TypeScript Graph client out of a private monorepo, which works only because both
-ends are TypeScript; nothing can vendor into Python. So what holds several
+ends are TypeScript; nothing can vendor into Python or Go. So what holds several
 implementations equivalent is not shared code — it is this suite.
 
 Each case encodes a rule where **the obvious implementation is the wrong one**.
@@ -44,7 +55,9 @@ and it lets each implementation decide for itself what "equal" means.
 
 The suite drives the built artefact, and for languages that ship as a package it
 drives the **installed package** rather than the source tree. The Python image
-builds a wheel and installs it, then launches the console script by name.
+builds a wheel and installs it, then launches the console script by name; the Go
+image compiles a static binary in one stage and runs that binary in the next,
+never `go run` over the source.
 
 This project has already paid for that lesson once. The `bin` entrypoint guard
 compared `import.meta.url` against `process.argv[1]` unresolved, which is false
@@ -202,10 +215,10 @@ fail the case where two of them previously passed.
 ## In CI
 
 `.github/workflows/ci.yml` builds the Node package, installs the Python one,
-builds the Python image, and runs:
+builds the Python and Go images, compiles the Go binary, and runs:
 
 ```bash
-node conformance/run.mjs node python python-native
+node conformance/run.mjs node python python-native go go-native
 ```
 
 **Named explicitly, and that is the point.** The runner skips an implementation

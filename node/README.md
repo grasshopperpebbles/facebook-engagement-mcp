@@ -134,8 +134,8 @@ the double-clickable bundle, not `npx`.
 
 #### Clone the repository
 
-This is a **multi-language monorepo** (`node/`, `python/`, shared `docs/`).
-There is no separate Node-only GitHub repo.
+This is a **multi-language monorepo** (`node/`, `python/`, `go/`, shared
+`docs/`). There is no separate Node-only GitHub repo.
 
 **Full clone:**
 
@@ -164,6 +164,18 @@ git sparse-checkout set python docs
 
 Then see [Python install](../python/README.md), or install from PyPI with no
 clone: `pip install facebook-engagement-mcp`.
+
+**Sparse checkout — Go (+ docs) only:**
+
+```bash
+git clone --filter=blob:none --sparse \
+  https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
+cd facebook-engagement-mcp
+git sparse-checkout set go docs
+```
+
+Then see [Go install](../go/README.md), or install with no clone at all:
+`go install github.com/grasshopperpebbles/facebook-engagement-mcp/go/cmd/facebook-engagement-mcp@latest`.
 
 #### Install and run from `node/`
 
