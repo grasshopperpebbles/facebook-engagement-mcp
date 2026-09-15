@@ -1,0 +1,43 @@
+{
+  "name": "a-token-without-ads-read-still-orients",
+  "rule": "When ad accounts cannot be read, orientation still returns the Pages and says what is missing. It must never become an error.",
+  "why": "T-21. Orientation is the call a model makes before it knows what it needs; failing it outright over a missing scope strands the caller at the first step with no way to discover the half that does work. The degraded answer names the scope instead.",
+  "tool": "comment_activity",
+  "arguments": {},
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    },
+    "/me/adaccounts": {
+      "status": 400,
+      "body": {
+        "error": {
+          "message": "(#200) Requires ads_read permission",
+          "code": 200,
+          "type": "OAuthException"
+        }
+      }
+    }
+  },
+  "expect": {
+    "at": {
+      "pages[0].id": "pg1"
+    },
+    "matches": [
+      "ads_read"
+    ],
+    "notMatches": [
+      "\"error\""
+    ]
+  }
+}

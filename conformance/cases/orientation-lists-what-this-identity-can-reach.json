@@ -1,0 +1,49 @@
+{
+  "name": "orientation-lists-what-this-identity-can-reach",
+  "rule": "Called with NO target, the tool lists Pages and ad accounts and reads no posts and no comments.",
+  "why": "T-21, 2026-09-07. Before this rung the headline capability was reachable only by someone willing to fetch a 17-digit id out of Ads Manager \u2014 fatal for the non-technical user the product is for. Ad accounts belong in it specifically because ads are the only route to comments on unpublished posts, so an orientation that lists Pages alone points the caller at the half that cannot answer their question.",
+  "tool": "comment_activity",
+  "arguments": {},
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    },
+    "/me/adaccounts": {
+      "data": [
+        {
+          "id": "act_900",
+          "name": "Test Ad Account"
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "b",
+          "after": "a"
+        }
+      }
+    }
+  },
+  "expect": {
+    "at": {
+      "pages[0].id": "pg1",
+      "adAccounts[0].id": "act_900"
+    },
+    "requested": [
+      "/me/adaccounts"
+    ],
+    "notRequested": [
+      "/pg1/feed",
+      "/pg1/photos"
+    ]
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "name": "an-ad-resolves-to-the-post-behind-it",
+  "rule": "An `ad` target resolves ad \u2192 creative \u2192 effective_object_story_id \u2192 post, and reads THAT post's comments. It must not sweep the Page.",
+  "why": "T-02, closed 2026-09-08 \u2014 the claim the product exists for, and it had never once run before that day. `/feed` does not return unpublished posts (verified live 2026-09-03, against Meta's documentation saying it does) and ads run on unpublished posts, so this is not a convenience over the page sweep, it is the ONLY route to a comment on an ad.",
+  "tool": "comment_activity",
+  "arguments": {
+    "ad": "ad_1",
+    "filter": "all",
+    "groupBy": "post"
+  },
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    },
+    "/ad_1": {
+      "id": "ad_1",
+      "creative": {
+        "id": "cr_1",
+        "effective_object_story_id": "pg1_dark1"
+      }
+    },
+    "/pg1_dark1/comments": {
+      "data": [
+        {
+          "id": "dark_c1",
+          "message": "Is this offer still on?",
+          "created_time": "2026-09-02T10:00:00+0000",
+          "comment_count": 0,
+          "is_hidden": false,
+          "can_comment": true,
+          "can_hide": true,
+          "from": {
+            "id": "visitor",
+            "name": "A Customer"
+          }
+        }
+      ],
+      "paging": {
+        "cursors": {
+          "before": "b",
+          "after": "a"
+        }
+      }
+    }
+  },
+  "expect": {
+    "requested": [
+      "/ad_1",
+      "/pg1_dark1/comments"
+    ],
+    "notRequested": [
+      "/pg1/feed"
+    ],
+    "threadStatuses": {
+      "dark_c1": "needs_reply"
+    },
+    "matches": [
+      "Is this offer still on"
+    ]
+  }
+}

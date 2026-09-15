@@ -127,5 +127,26 @@ class Transport:
                     return items, True
         return items, False
 
+    async def post(self, path: str, params: dict[str, str]) -> dict[str, Any]:
+        """Form-encoded POST. Parameters go in the BODY, never the query string:
+        comment text is user data and must not reach proxy or CDN logs.
+
+        Never retried, anywhere. A retried reply is a double post, and a comment
+        published twice cannot be unpublished from the people who saw it.
+        """
+        response = await self._client.post(
+            self._url(path),
+            data=params,
+            headers={"authorization": f"Bearer {await self._token()}",
+                     "accept": "application/json"},
+        )
+        try:
+            body = response.json()
+        except ValueError:
+            body = None
+        if response.status_code >= 400:
+            raise MetaApiError.from_body(response.status_code, body)
+        return body or {}
+
     async def aclose(self) -> None:
         await self._client.aclose()

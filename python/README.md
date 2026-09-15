@@ -24,23 +24,33 @@ environment.
 the entire reason it can install without a prerequisite. Python installs the way
 Python installs.
 
-## What this build does NOT do
+## What this build does
 
-Stated plainly and up front, because the failure this whole capability exists to
-prevent is a confident short answer:
+The same three tools as Node, held to the same behaviour by the
+[conformance suite](../conformance/README.md):
 
-- **No ad, campaign or `adAccount` targets.** Those resolve an ad through the
-  Marketing API to the Page post behind it, and that surface is not ported. **So
-  comments on ads are unreachable here.** Ads run on unpublished posts and no
-  Page-level sweep returns those, so there is no workaround within this build —
-  use the Node one. The tool description says so too, where a model will see it.
-- **No orientation rung.** Calling with no target is an error here rather than a
-  listing of Pages and ad accounts.
-- **No write tools.** `respond_to_comment` and `moderate_comment` are Node-only;
-  this server is read-only and says so on startup.
+- **`comment_activity`** — the page, post and comment sweeps, plus the ad route
+  (`ad` and `campaign`) and both discovery rungs (no target lists Pages and ad
+  accounts; `adAccount` lists that account's campaigns by name).
+- **`respond_to_comment`** and **`moderate_comment`** — off by default. Set
+  `FACEBOOK_ENGAGEMENT_ENABLE_WRITES=true` to register them.
 
-What *is* here is the Page/post/comment read path, and it is held to the same
-behaviour as Node by the [conformance suite](../conformance/README.md).
+**This section used to say the opposite, and the correction is the point.** Until
+2026-09-15 this build had the read path only, and said so here, in the tool
+description and on startup — ads unreachable, no orientation, no writes. That was
+accurate then. **Nobody re-reads a limitation to check it is still a limitation**,
+so a closed gap rots in place and a reader decides against the build on a
+weakness that no longer exists. Deleting the old text entirely would lose that;
+this paragraph is what replaces it.
+
+### What is still Node-only
+
+- **The `.mcpb` bundle.** Claude Desktop ships a Node runtime, which is why a
+  double-clickable installer is possible there and not here.
+- **Elicitation on `respond_to_comment`.** Node asks the client to confirm before
+  publishing. This build gates writes on the environment variable alone, which is
+  the same property that actually matters — **a model cannot set it** — but it is
+  one fewer prompt in front of a public reply. Turn writes on deliberately.
 
 ## Running against the conformance suite
 
@@ -83,7 +93,9 @@ bugs, and why the conformance suite exists:
 
 | | |
 |---|---|
-| `/feed` does not return unpublished posts | Meta's documentation says it does. Ads run on unpublished posts, so no Page sweep reaches ad comments. |
+| `/feed` does not return unpublished posts | Meta's documentation says it does. Ads run on unpublished posts, so no Page sweep reaches ad comments — pass an `ad` or `campaign` instead. |
+| `pageId` is **required** on both write tools | Optional, it fell back to the user token, and Meta refused by naming a permission removed in 2018. The fault was the identity, not the permission. |
+| An ad with no Page post behind it **says so** | Some formats create none. An empty answer would read as "no comments" rather than "not visible here". |
 | A comment read with a **user** token returns an **empty array**, not an error | Hence the Page-token exchange in `tokens.py`. The most confusing failure in this API. |
 | Threads run **three** levels deep | And `parent` points at the *reply*, not the top-level comment. |
 | `answered` means the Page spoke **last** | Not that the Page appears somewhere in the thread. |

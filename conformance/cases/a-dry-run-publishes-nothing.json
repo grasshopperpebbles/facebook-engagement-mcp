@@ -1,0 +1,45 @@
+{
+  "name": "a-dry-run-publishes-nothing",
+  "rule": "`dryRun` reports the intended effect and makes no write request whatsoever.",
+  "why": "A reply is public the moment it exists and deleting it does not unpublish what people already saw, so the dry run is the only safe way to confirm a target. It is also checked AFTER the pageId guard, so a dry run can never report that a call would work when it could not.",
+  "tool": "respond_to_comment",
+  "arguments": {
+    "commentId": "pg1_p1_c1",
+    "message": "Thanks for asking!",
+    "pageId": "pg1",
+    "dryRun": true
+  },
+  "env": {
+    "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "true",
+    "PAGE_ENGAGEMENT_ENABLE_WRITES": "true",
+    "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES": "true",
+    "PAGE_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES": "true"
+  },
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    }
+  },
+  "expect": {
+    "at": {
+      "dryRun": true,
+      "intended.commentId": "pg1_p1_c1"
+    },
+    "notRequested": [
+      "/pg1_p1_c1/comments"
+    ],
+    "notMatches": [
+      "Thanks for asking"
+    ]
+  }
+}

@@ -63,3 +63,11 @@ class PagesClient:
             params={"fields": COMMENT_FIELDS, "order": "chronological"},
         )
         return [normalize_comment(item) for item in items]
+
+    async def reply(self, comment_id: str, message: str) -> dict[str, object]:
+        return await self._transport.post(f"/{comment_id}/comments", {"message": message})
+
+    async def set_hidden(self, comment_id: str, hidden: bool) -> dict[str, object]:
+        """Hide and unhide are one endpoint and one boolean, which is why this is
+        one method rather than two."""
+        return await self._transport.post(f"/{comment_id}", {"is_hidden": str(hidden).lower()})

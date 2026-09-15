@@ -26,12 +26,7 @@
       "-i",
       "--rm",
       "--add-host=host.docker.internal:host-gateway",
-      "--env",
-      "META_ACCESS_TOKEN",
-      "--env",
-      "META_GRAPH_ORIGIN",
-      "--env",
-      "META_ALLOW_GRAPH_ORIGIN_OVERRIDE",
+      "{{ENV}}",
       "fbe-python:dev"
     ],
     "stubHost": "host.docker.internal",

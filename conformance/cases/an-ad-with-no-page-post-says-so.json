@@ -1,0 +1,40 @@
+{
+  "name": "an-ad-with-no-page-post-says-so",
+  "rule": "When an ad resolves to no Page post, the answer says so. It must never report a confident zero.",
+  "why": "A known limitation recorded rather than fixed: some ad formats create no Page post at all, so their comments are unreachable by any Page-based route. The failure mode this guards is the one the whole capability exists to prevent \u2014 an empty answer that looks like 'no comments' when it means 'not visible here'. A marketer told zero stops looking.",
+  "tool": "comment_activity",
+  "arguments": {
+    "ad": "ad_2",
+    "filter": "all"
+  },
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    },
+    "/ad_2": {
+      "id": "ad_2",
+      "creative": {
+        "id": "cr_2"
+      }
+    }
+  },
+  "expect": {
+    "matches": [
+      "no Page post",
+      "ad_2"
+    ],
+    "at": {
+      "partial": true
+    }
+  }
+}

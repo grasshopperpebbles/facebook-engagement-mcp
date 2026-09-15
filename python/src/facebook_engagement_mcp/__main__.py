@@ -19,11 +19,14 @@ def main() -> None:
         print("META_ACCESS_TOKEN is required. See the README for the scopes it needs.", file=sys.stderr)
         raise SystemExit(1)
 
-    print(
-        "Write tools are not implemented in the Python build; this server is read-only.",
-        file=sys.stderr,
-    )
-    build(access_token).run(transport="stdio")
+    enable_writes = os.environ.get("FACEBOOK_ENGAGEMENT_ENABLE_WRITES") == "true"
+    if not enable_writes:
+        print(
+            "Write tools are disabled. Set FACEBOOK_ENGAGEMENT_ENABLE_WRITES=true to enable "
+            "replying and hiding.",
+            file=sys.stderr,
+        )
+    build(access_token, enable_writes=enable_writes).run(transport="stdio")
 
 
 if __name__ == "__main__":

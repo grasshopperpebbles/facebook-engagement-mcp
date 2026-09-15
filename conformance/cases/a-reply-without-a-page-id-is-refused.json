@@ -1,0 +1,39 @@
+{
+  "name": "a-reply-without-a-page-id-is-refused",
+  "rule": "`respond_to_comment` refuses a call with no `pageId`, names that field, and reaches Graph not at all. Refusing in the tool schema or in the tool body are both acceptable.",
+  "why": "T-26, 2026-09-08. `pageId` was optional and the tool fell back to the startup client, which holds the USER token \u2014 so a caller supplying only a comment id got Meta's refusal naming `publish_actions`, a permission removed in 2018. The message is literally true and entirely misleading: the fault is the identity, not the permission, and no App Review can grant a dead scope. A whole day was spent on that diagnosis. Refusing here costs one round trip and says the true thing. The case deliberately does not pin WHICH layer refuses: Node marks pageId required in the tool schema, so the MCP layer rejects it before the body runs and the explanatory message is unreachable \u2014 which is stronger, not weaker. What must hold in every implementation is that the call is refused, the field is named, and nothing is sent.",
+  "tool": "respond_to_comment",
+  "arguments": {
+    "commentId": "pg1_p1_c1",
+    "message": "Thanks for asking!"
+  },
+  "env": {
+    "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "true",
+    "PAGE_ENGAGEMENT_ENABLE_WRITES": "true",
+    "FACEBOOK_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES": "true",
+    "PAGE_ENGAGEMENT_ALLOW_UNCONFIRMED_WRITES": "true"
+  },
+  "graph": {
+    "/me/accounts": {
+      "data": [
+        {
+          "id": "pg1",
+          "name": "Test Page",
+          "access_token": "page-token",
+          "tasks": [
+            "MODERATE",
+            "MANAGE"
+          ]
+        }
+      ]
+    }
+  },
+  "expect": {
+    "matches": [
+      "pageId"
+    ],
+    "notRequested": [
+      "/pg1_p1_c1/comments"
+    ]
+  }
+}

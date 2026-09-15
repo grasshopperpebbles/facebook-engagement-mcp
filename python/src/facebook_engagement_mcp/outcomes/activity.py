@@ -6,7 +6,9 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ..graph import MetaApiError, PagesClient
+from ..graph.marketing import MarketingClient
 from ..graph.types import Comment
+from .ad_posts import resolve_ad_posts
 from .grouping import count_threads, group_threads
 from .render import (
     TextBudget,
@@ -27,12 +29,64 @@ def _page_id_from_post_id(post_id: str) -> str | None:
     return post_id.split("_")[0] if "_" in post_id else None
 
 
+async def run_orientation(
+    client: PagesClient, marketing: MarketingClient | None
+) -> dict[str, Any]:
+    """No target: what this identity can reach at all.
+
+    Two cheap list calls, no posts and no comments. This is the call made BEFORE
+    the caller knows what they need, and the ad accounts belong in it because ads
+    are the only route to comments on unpublished posts — an orientation listing
+    Pages alone points the caller at the half that cannot answer their question
+    (T-21).
+    """
+    pages = [{"id": c.id, **({"name": c.name} if c.name else {}),
+              **({"tasks": c.tasks} if c.tasks else {})}
+             for c in await client.credentials()]
+    out: dict[str, Any] = {"pages": pages}
+
+    if marketing is None:
+        return out
+    try:
+        accounts = await marketing.ad_accounts()
+        out["adAccounts"] = [{"id": a.id, **({"name": a.name} if a.name else {})} for a in accounts]
+    except MetaApiError as error:
+        # Degraded to a note, NEVER an error. Failing orientation outright over a
+        # missing scope strands the caller at the first step with no way to
+        # discover the half that does work.
+        out["notes"] = [
+            (
+                "Ad accounts could not be listed, so ads are not shown here. This usually "
+                f"means the token lacks ads_read. Pages are unaffected. Graph said: {error}"
+            )
+        ]
+    return out
+
+
+async def run_campaigns(marketing: MarketingClient, account_id: str) -> dict[str, Any]:
+    """An ad account names its campaigns, so a person can pick one by name rather
+    than pasting an id out of Ads Manager. Reads no comments deliberately."""
+    campaigns, truncated = await marketing.campaigns(account_id)
+    return {
+        "campaigns": [
+            {"id": c.id, **({"name": c.name} if c.name else {}),
+             **({"status": c.effective_status or c.status} if (c.effective_status or c.status) else {}),
+             **({"objective": c.objective} if c.objective else {})}
+            for c in campaigns
+        ],
+        "truncated": truncated,
+    }
+
+
 async def run_comment_activity(
     client: PagesClient,
     *,
     page: str | None = None,
     post: str | None = None,
     comment: str | None = None,
+    ad: str | None = None,
+    campaign: str | None = None,
+    marketing: MarketingClient | None = None,
     filter: str = "needs_reply",
     group_by: str = "post",
     since: str | None = None,
@@ -54,11 +108,11 @@ async def run_comment_activity(
     elif comment is not None:
         target = {"kind": "comment", "id": comment}
         page_id = None
+    elif ad is not None or campaign is not None:
+        target = {"kind": "ad" if ad else "campaign", "id": ad or campaign}
+        page_id = None
     else:
-        raise ValueError(
-            "Pass a page, post or comment id. Ad and campaign targets are not implemented "
-            "in the Python package yet — see python/README.md."
-        )
+        raise ValueError("Pass a page, post, comment, ad or campaign id.")
 
     threads: list[Thread] = []
     posts: list[ThreadPost] = []
@@ -70,6 +124,20 @@ async def run_comment_activity(
     else:
         if page is not None:
             posts = [thread_post(p) for p in await client.feed(page, since=since, max_items=MAX_POSTS)]
+        elif ad is not None or campaign is not None:
+            # Ad → creative → post. NOT a page sweep: `/feed` would not return
+            # these posts at all, which is the whole reason this path exists.
+            if marketing is None:
+                raise ValueError(
+                    "Ad and campaign targets need Marketing API access, which is not configured."
+                )
+            post_ids, ad_notes = await resolve_ad_posts(marketing, ad=ad, campaign=campaign)
+            notes.extend(ad_notes)
+            if ad_notes:
+                partial = True
+            posts = [ThreadPost(id=i) for i in post_ids]
+            if posts:
+                page_id = _page_id_from_post_id(posts[0].id)
         else:
             posts = [ThreadPost(id=post)]  # type: ignore[arg-type]
 

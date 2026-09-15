@@ -68,9 +68,16 @@ describes and confirming the case objects.
 | `replies-are-not-in-time-order` | assembler stops sorting **and** triage reads `at(-1)` | ✅ |
 | `no-author-anywhere-needs-reply` | `replies.length > 0 ? answered : needs_reply` | ✅ |
 | `no-author-anywhere-needs-reply` | restore the overturned cause in the note | ✅ |
+| `orientation-lists-what-this-identity-can-reach` | drop ad accounts from the listing | ✅ |
+| `a-token-without-ads-read-still-orients` | turn the missing scope into an error | ✅ |
+| `an-ad-resolves-to-the-post-behind-it` | ignore the creative's story id | ✅ |
+| `an-ad-with-no-page-post-says-so` | drop the note, return a silent zero | ✅ |
+| `a-reply-without-a-page-id-is-refused` | remove the schema requirement **and** the body guard | ✅ |
+| `a-dry-run-publishes-nothing` | make the dry run publish | ✅ |
+| `a-dry-run-publishes-nothing` | echo the caller's text back | ✅ |
 
 Every one was then re-run against the **Python** implementation, breaking it the
-same four ways. All four caught. That is the check that makes these conformance
+same ways. All caught. That is the check that makes these conformance
 cases rather than TypeScript tests: a case that discriminates in one language and
 not another is not testing the rule, it is testing an implementation.
 
@@ -96,6 +103,24 @@ alone.
 by being able to disagree*, and the only way to find out whether it can is to
 make it.
 
+### A case that must NOT fail on one layer alone
+
+`a-reply-without-a-page-id-is-refused` is the one worth reading before writing a
+new case. Node marks `pageId` required in the tool schema, so the MCP layer
+rejects the call before the tool body runs — and the body *also* guards it. Two
+layers, like T-36's fix.
+
+Removing the schema requirement alone leaves the case **passing**, and that is
+correct rather than a weakness here: the rule is *refused, names the field, reaches
+Graph not at all*, and either layer satisfies it. Pinning which layer refuses
+would make the case reject a legitimate implementation that chose the other one.
+Only removing both fails it, and that is the mutation recorded above.
+
+**The general shape: assert the behaviour the caller can observe, not the
+mechanism that produces it.** A case that pins the mechanism stops being a
+conformance case and becomes a test of one implementation's internals — which is
+the thing this suite exists to avoid.
+
 ## What the first port found
 
 Building the Python implementation exercised the suite for real, and three
@@ -111,6 +136,16 @@ things fell out that no amount of reading would have produced.
   accordingly. This is the **concrete** vindication of dropping the
   loopback-only rule from the Graph origin override: that rule would have passed
   every local run and failed every containerised one.
+- **The container was silently testing something else.** A containerised entry
+  inherits nothing from the parent process, so the fixed list of `--env` flags in
+  `implementations.json` forwarded the three variables somebody thought of and
+  dropped every variable a *case* sets. It surfaced only because Python is listed
+  twice, native and containerised, and the two disagreed on identical code. Had
+  only the container been listed, the suite would have reported a real
+  implementation failing a rule it honours — or, with the polarity reversed,
+  passed one it does not. `{{ENV}}` in a launch command now expands to the whole
+  environment. **Listing the same implementation two ways was worth more than it
+  looked**, and it was originally done only because the native run was faster.
 - **The two implementations refused the same input with different
   explanations.** `file:///etc/passwd` is rejected by both, but Python's host
   check ran before its scheme check, so it said "not a valid URL" where

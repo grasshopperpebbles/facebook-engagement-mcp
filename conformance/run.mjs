@@ -118,11 +118,25 @@ function check(testCase, activity, stub) {
     if (new RegExp(pattern, "i").test(json)) failures.push(`response must NOT match /${pattern}/i`)
   }
 
-  // Asserting what was NOT requested is how "it fetched the third level" is
+  // Asserting what WAS requested is how "it fetched the third level" is
   // distinguished from "it happened to have the right answer in the fixture".
   for (const suffix of expect.requested ?? []) {
     if (!stub.requests.some((r) => r.path.endsWith(suffix))) {
       failures.push(`expected a request to *${suffix}; none was made`)
+    }
+  }
+
+  // And asserting what was NOT requested is how a rung is held to being cheap.
+  // Orientation exists to be the call made BEFORE the caller knows what they
+  // need, so an implementation that sweeps a Page to answer it has the same
+  // output and the wrong cost. The ad route needs it for a different reason: an
+  // implementation that resolved the ad AND swept the Page would pass every
+  // output assertion while having missed the entire point, which is that no
+  // Page-level sweep reaches an unpublished post.
+  for (const suffix of expect.notRequested ?? []) {
+    const made = stub.requests.filter((r) => r.path.endsWith(suffix))
+    if (made.length > 0) {
+      failures.push(`expected NO request to *${suffix}; ${made.length} were made`)
     }
   }
 
@@ -132,23 +146,53 @@ function check(testCase, activity, stub) {
 async function runCase(implementation, testCase) {
   const stub = new GraphStub(hydrate(testCase.graph ?? {}))
   const origin = await stub.listen(implementation.stubHost)
-  const mcp = new McpProcess(implementation.cmd, {
+  const env = {
     ...implementation.env,
     META_ACCESS_TOKEN: "conformance-token",
     META_GRAPH_ORIGIN: origin,
     META_ALLOW_GRAPH_ORIGIN_OVERRIDE: "true",
     ...testCase.env,
-  }, REPO)
+  }
+
+  // `{{ENV}}` expands to one `--env KEY=VALUE` per variable.
+  //
+  // **This exists because the container silently tested something else.** A
+  // containerised entry inherits nothing from the parent process, so a fixed
+  // list of `--env` flags in implementations.json forwarded exactly the three
+  // variables somebody thought of and dropped every variable a CASE sets. The
+  // symptom was the two Python entries disagreeing — native passing the write
+  // cases, the container failing them, on identical code — which was luck: had
+  // only the container been listed, the suite would have reported a real
+  // implementation failing a rule it actually honours, or worse, passed a rule
+  // it does not because the case's env never arrived.
+  const cmd = implementation.cmd.flatMap((arg) =>
+    arg === "{{ENV}}" ? Object.keys(env).flatMap((key) => ["--env", `${key}=${env[key]}`]) : [arg],
+  )
+
+  const mcp = new McpProcess(cmd, env, REPO)
 
   try {
     await mcp.initialize()
-    const result = await mcp.callTool(testCase.tool, testCase.arguments ?? {})
-    const text = result?.content?.[0]?.text ?? ""
+
+    // A refusal is an answer, and half of what this capability does is refuse
+    // safely. An implementation may reject an invalid call at the protocol layer
+    // (a required field in the tool schema) or inside the tool body with an
+    // explanatory message — both are legitimate, and a case must be able to
+    // assert the BEHAVIOUR (refused, nothing reached Graph, the right field
+    // named) without pinning which layer said so. So a protocol error is
+    // normalised into the same shape as a returned error rather than crashing
+    // the case.
     let activity
     try {
-      activity = JSON.parse(text)
-    } catch {
-      return [`tool returned non-JSON content: ${text.slice(0, 300)}`]
+      const result = await mcp.callTool(testCase.tool, testCase.arguments ?? {})
+      const text = result?.content?.[0]?.text ?? ""
+      try {
+        activity = JSON.parse(text)
+      } catch {
+        activity = { error: text }
+      }
+    } catch (protocolError) {
+      activity = { error: String(protocolError instanceof Error ? protocolError.message : protocolError) }
     }
     return check(testCase, activity, stub)
   } catch (error) {
