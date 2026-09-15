@@ -113,7 +113,7 @@ see listed on the screen in front of you.
 I wrote this one up when it happened:
 Adding the Use Case Didn't Add the Permission.
 
-**Add these four:**
+**Add these four — all of them, in the same token grant:**
 
 | Permission | What it covers | App Review |
 |---|---|---|
@@ -121,6 +121,15 @@ Adding the Use Case Didn't Add the Permission.
 | `pages_read_engagement` | Page content and metadata | Yes, for production |
 | `pages_read_user_content` | **Comments and posts written by other people** | Yes |
 | `pages_manage_engagement` | Create, edit and delete comments | Yes |
+
+When you **Get User Access Token** in Graph API Explorer, tick **all four in
+that one permissions dialog** (plus `business_management` and optionally
+`ads_read` below). Do not treat `pages_read_user_content` as something to add
+later — it is required for reading comments, and it is easy to confuse with
+`pages_read_engagement`. They are different scopes. Engagement alone lets you
+see Page-owned content; **user content** is what covers comments other people
+wrote. Skip it at mint time and `/{post-id}/comments` fails with a permissions
+error even though the other three are present.
 
 Note the dependency: Meta's reference lists `pages_manage_engagement` as
 requiring `pages_read_user_content` and `pages_show_list`. You cannot cherry-pick
@@ -188,18 +197,19 @@ Walked in the Explorer:
    **Page Access Tokens**. That menu item is what opens the permission picker
    for a user token; merely having "User Token" shown in the closed dropdown
    is not enough if the Access Token field is empty or stale.
-4. In the permissions dialog, select **every scope you need** — not `ads_read`
-   alone. Ticking only the new scope replaces the previous grant with a
-   narrower one, and you lose the Page scopes you already walked:
+4. In the permissions dialog, select **the full set in one pass** — not
+   `ads_read` alone, and not the Page scopes without
+   `pages_read_user_content`. Ticking only a newly remembered scope replaces
+   the previous grant with a narrower one:
 
-   | Permission | Why it is on this token |
-   |---|---|
-   | `pages_show_list` | `/me/accounts` — which Pages exist |
-   | `pages_read_engagement` | Page content and metadata |
-   | `pages_read_user_content` | Comments written by other people |
-   | `pages_manage_engagement` | Reply / hide (omit only if you will never write) |
-   | `business_management` | Required for `/me/accounts` to return Pages under a Business Portfolio — without it the list is often `[]` |
-   | `ads_read` | Ad accounts, campaigns, ad → post (omit if you only sweep Pages) |
+   | Permission | Why it is on this token | Required? |
+   |---|---|---|
+   | `pages_show_list` | `/me/accounts` — which Pages exist | Yes |
+   | `pages_read_engagement` | Page content and metadata | Yes |
+   | `pages_read_user_content` | Comments written by other people | **Yes — same dialog as the others** |
+   | `pages_manage_engagement` | Reply / hide | Yes if you write; omit only for read-only |
+   | `business_management` | `/me/accounts` under a Business Portfolio | Yes when the list would otherwise be `[]` |
+   | `ads_read` | Ad accounts, campaigns, ad → post | Only if you need ads |
 
 5. Complete the consent dialog (Pages and, if asked, ad accounts / businesses).
 6. Confirm in **Access Token Debugger** (Step 4) that those scopes appear.
@@ -629,32 +639,40 @@ A permissions refusal (often `(#200)` or `(#10)`, wording like *permission* /
 *permissions*) is **not** the empty-array trap. Graph accepted a Page-shaped
 call and rejected the scopes (or the Page grant behind them).
 
+**Almost always this means `pages_read_user_content` was not on the user token
+when the Page token was minted.** It belongs in the **same** **Get User Access
+Token** permissions dialog as `pages_show_list`, `pages_read_engagement`, and
+(if you write) `pages_manage_engagement` — see Step 1. It is not a later bolt-on.
+`pages_read_engagement` is the lookalike that does **not** cover comments by
+other people; if you ticked engagement and skipped user content, this is the
+error you get.
+
 Fix, in order:
 
 1. **Confirm the Explorer is on the Page.** **User or Page** must show your
    Page name, not "User Token". A user token usually returns empty `data` for
-   comments; a Page token with bad scopes returns a permissions error instead.
+   comments; a Page token missing `pages_read_user_content` returns a
+   permissions error instead.
 2. **Debug the Page token.** Open **Tools → Access Token Debugger**, paste the
    token from the Explorer (copy the Access Token field while the Page is
-   selected), click **Debug**. The Scopes list must include
-   **`pages_read_user_content`**. Without it, comment reads on other people's
-   comments will not work. `pages_read_engagement` alone is not enough.
-3. **Remint the user token, then take a fresh Page token.** Page tokens are a
-   snapshot of the user token at exchange time. Adding `pages_read_user_content`
-   on the app (or ticking it in a stale Explorer session) does not rewrite a
-   Page token you already selected.
+   selected), click **Debug**. Scopes must include **`pages_read_user_content`**
+   alongside the other Page permissions you selected at mint time.
+3. **Remint with the full set, then take a fresh Page token.** Page tokens are a
+   snapshot of the user token at exchange time. You cannot fix a missing
+   `pages_read_user_content` by selecting the Page again without regenerating
+   the user token.
    1. **User or Page → Get User Access Token**.
-   2. In the permissions dialog, tick **`pages_read_user_content`** (and the
-      other Page scopes you need — including `business_management` if
-      `/me/accounts` was empty before).
+   2. Tick **all** of the Step 1 Page permissions together — including
+      **`pages_read_user_content`** — plus `business_management` if you needed
+      it for `/me/accounts`, plus `ads_read` only if you need ads.
    3. Complete consent with **Edit settings** (not Continue) and tick the Page.
    4. **User or Page →** your Page under **Page Access Tokens** again.
    5. Retry the comments call.
 4. **Check granular targets if the scope is present but the call still fails.**
    In the Debugger output, `pages_read_user_content` may list `target_ids`. If
    your Page's id is not among them, the permission exists on the token but not
-   for that Page — uninstall the app, **Get User Access Token** again, and
-   explicitly opt that Page in.
+   for that Page — uninstall the app, **Get User Access Token** again with the
+   full set, and explicitly opt that Page in.
 5. **Confirm the post id.** Submit `{page-id}/feed?fields=id,message` on the
    Page token, copy an `id` from `data`, and use that exact value in
    `{id}/comments?...`. Wrong or partial ids produce confusing refusals that
@@ -853,11 +871,12 @@ The setup above is the resolution to a series of things that went wrong first:
 - A **user access token returns an empty array** for comments. You need a Page
   access token (**User or Page →** your Page). This single fact explains most
   "the API returns nothing" reports.
-- A **permissions error** on `/{post-id}/comments` usually means the Page token
-  was minted before `pages_read_user_content` was on the user token (or the Page
-  is missing from that scope's `target_ids`). Remint **Get User Access Token**
-  with that scope, re-select the Page, retry. Confirm scopes in **Access Token
-  Debugger**.
+- A **permissions error** on `/{post-id}/comments` means
+  `pages_read_user_content` was not on the user token when the Page token was
+  minted (or the Page is missing from that scope's `target_ids`). It should have
+  been ticked **with** the other Page permissions in **Get User Access Token** —
+  not added later, and not confused with `pages_read_engagement`. Remint the
+  full set, re-select the Page, retry. Confirm in **Access Token Debugger**.
 - **Error 2500** (`An active access token must be used to query information
   about the current user`) on `/me/accounts` means the Explorer has no usable
   **user** token — empty field, Page selected in User or Page, or expired.

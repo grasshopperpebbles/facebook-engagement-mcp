@@ -31,12 +31,14 @@ a permission — you have to grant them explicitly.
 |---|---|
 | `pages_show_list` | Which Pages you manage |
 | `pages_read_engagement` | Page content and metadata |
-| `pages_read_user_content` | Reading the comments |
+| `pages_read_user_content` | Reading the comments — **required; tick it in the same dialog as the others**. Not the same as `pages_read_engagement` |
 | `pages_manage_engagement` | Replying and hiding (only if you want writes) |
 | `business_management` | `/me/accounts` actually returns Pages when they live under a Business Portfolio — without it the list is often empty |
 | `ads_read` | Comments on your ads |
 
-Leave out `ads_read` and comments on ads stay invisible — see
+Select the Page permissions **together** when you **Get User Access Token**.
+Leave out `pages_read_user_content` and comment reads fail with a permissions
+error. Leave out `ads_read` and comments on ads stay invisible — see
 [why](dark-posts.md). Leave out `business_management` and `/me/accounts` may
 return `{"data": []}` even when the Page permissions are present — see
 [empty `/me/accounts`](setup-tokens-permissions.md#empty-data--from-meaccounts).
@@ -101,7 +103,7 @@ You are done. Ask Claude about comments on your Page.
 |---|---|
 | `/me/accounts` empty | Missing `business_management` (common under Business Portfolio), or empty Page grant — re-authorise with **Edit settings**. [Empty `/me/accounts`](setup-tokens-permissions.md#empty-data--from-meaccounts) |
 | No comments, no error | The token is a user token that was never exchanged, or you are not an admin of the Page. [The empty array](setup-tokens-permissions.md) |
-| Permissions error on `/{post-id}/comments` | Page token missing `pages_read_user_content` (remint user token, then re-select the Page) or bad post id. [Reading the comments](setup-tokens-permissions.md#reading-the-comments) |
+| Permissions error on `/{post-id}/comments` | `pages_read_user_content` was missing from the mint dialog (it must be selected with the other Page permissions — not confused with `pages_read_engagement`). Remint the full set, re-select the Page. [Reading the comments](setup-tokens-permissions.md#reading-the-comments) |
 | Nothing from your ads | `ads_read` was not granted. [Ads' comments are invisible](dark-posts.md) |
 | A refusal naming `publish_actions` | A permission removed in 2018 — the message is misleading. [What it really means](publish-actions-error.md) |
 | It worked, then stopped | The 60 days are up. Repeat steps 3 and 4 — or stop repeating them: a [System User token](system-user-token.md) does not expire |
