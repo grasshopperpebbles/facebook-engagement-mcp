@@ -27,10 +27,23 @@ export class GraphStub {
     this.server = createServer((req, res) => this.#handle(req, res))
   }
 
-  async listen() {
-    await new Promise((resolve) => this.server.listen(0, "127.0.0.1", resolve))
+  /**
+   * @param {string} host how the implementation under test will address this
+   *   stub. Loopback for a local process; `host.docker.internal` (or a compose
+   *   service name) for a container, where `127.0.0.1` is the CONTAINER's own
+   *   loopback and not the host's.
+   *
+   * Binding follows from that: a container cannot reach a socket bound only to
+   * the host's loopback, so a non-loopback host implies binding on all
+   * interfaces. This is the concrete reason the Graph origin override is not
+   * loopback-restricted — a rule requiring loopback would pass every local run
+   * and fail every containerised one.
+   */
+  async listen(host = "127.0.0.1") {
+    const bind = host === "127.0.0.1" ? "127.0.0.1" : "0.0.0.0"
+    await new Promise((resolve) => this.server.listen(0, bind, resolve))
     const { port } = /** @type {{port: number}} */ (this.server.address())
-    return `http://127.0.0.1:${port}`
+    return `http://${host}:${port}`
   }
 
   async close() {

@@ -33,8 +33,8 @@ which also moves the `paging.next` origin pin — one value, so a stubbed run
 cannot follow `next` off to a third host.
 
 **The runner knows nothing about any language.** `implementations.json` gives a
-launch command; Node's is `node node/dist/index.js`, Python's will be
-`docker run -i --rm …`. The runner talks to a pipe.
+launch command; Node's is `node node/dist/index.js`, Python's is
+`docker run -i --rm fbe-python:dev`. The runner talks to a pipe.
 
 That indirection is the point. The alternative — a runner per language, written
 in the porter's language by the porter — is a judge appointed by the defendant,
@@ -42,8 +42,9 @@ and it lets each implementation decide for itself what "equal" means.
 
 ## Against the thing people get
 
-The suite drives the built artefact and, for languages that ship as a package, it
-will drive the **installed package** rather than the source tree.
+The suite drives the built artefact, and for languages that ship as a package it
+drives the **installed package** rather than the source tree. The Python image
+builds a wheel and installs it, then launches the console script by name.
 
 This project has already paid for that lesson once. The `bin` entrypoint guard
 compared `import.meta.url` against `process.argv[1]` unresolved, which is false
@@ -68,6 +69,11 @@ describes and confirming the case objects.
 | `no-author-anywhere-needs-reply` | `replies.length > 0 ? answered : needs_reply` | ✅ |
 | `no-author-anywhere-needs-reply` | restore the overturned cause in the note | ✅ |
 
+Every one was then re-run against the **Python** implementation, breaking it the
+same four ways. All four caught. That is the check that makes these conformance
+cases rather than TypeScript tests: a case that discriminates in one language and
+not another is not testing the rule, it is testing an implementation.
+
 ### The one that did not catch its own mutation at first
 
 `replies-are-not-in-time-order` was written for T-36 and **passed** when
@@ -89,6 +95,29 @@ alone.
 **This is the suite's own rule turning on the suite.** *A check earns its place
 by being able to disagree*, and the only way to find out whether it can is to
 make it.
+
+## What the first port found
+
+Building the Python implementation exercised the suite for real, and three
+things fell out that no amount of reading would have produced.
+
+- **The runner died instead of failing.** A Python import error took the whole
+  run down with a Node stack trace, so the one language whose result mattered
+  reported nothing at all. A harness that cannot survive the failure it exists to
+  detect is no better than a check that cannot fail. A dead subprocess is now a
+  failing case, proved with a launch command that cannot work.
+- **A container cannot reach a stub on the host's loopback.** `127.0.0.1` inside
+  a container is the container's own. The stub takes a host now, and binds
+  accordingly. This is the **concrete** vindication of dropping the
+  loopback-only rule from the Graph origin override: that rule would have passed
+  every local run and failed every containerised one.
+- **The two implementations refused the same input with different
+  explanations.** `file:///etc/passwd` is rejected by both, but Python's host
+  check ran before its scheme check, so it said "not a valid URL" where
+  TypeScript said "must be http or https". The verdict matched, so the
+  conformance suite saw nothing — a unit test caught it. **Conformance over the
+  wire does not cover everything**, and where a diagnosis is the product, it has
+  to be tested where the diagnosis is made.
 
 ## Adding a case
 

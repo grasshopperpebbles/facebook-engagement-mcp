@@ -1,12 +1,47 @@
 {
   "node": {
-    "cmd": ["node", "node/dist/index.js"],
+    "cmd": [
+      "node",
+      "node/dist/index.js"
+    ],
     "existsCheck": "node/dist/index.js",
-    "env": { "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false" }
+    "env": {
+      "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
+    }
   },
   "gpp-mcp-page-engagement": {
-    "cmd": ["node", "../gpp-mcp/servers/page-engagement/dist/index.js"],
+    "cmd": [
+      "node",
+      "../gpp-mcp/servers/page-engagement/dist/index.js"
+    ],
     "existsCheck": "../gpp-mcp/servers/page-engagement/dist/index.js",
-    "env": { "PAGE_ENGAGEMENT_ENABLE_WRITES": "false" }
+    "env": {
+      "PAGE_ENGAGEMENT_ENABLE_WRITES": "false"
+    }
+  },
+  "python": {
+    "cmd": [
+      "docker",
+      "run",
+      "-i",
+      "--rm",
+      "--add-host=host.docker.internal:host-gateway",
+      "--env",
+      "META_ACCESS_TOKEN",
+      "--env",
+      "META_GRAPH_ORIGIN",
+      "--env",
+      "META_ALLOW_GRAPH_ORIGIN_OVERRIDE",
+      "fbe-python:dev"
+    ],
+    "stubHost": "host.docker.internal",
+    "env": {}
+  },
+  "python-native": {
+    "cmd": [
+      "python/.venv/bin/facebook-engagement-mcp"
+    ],
+    "existsCheck": "python/.venv/bin/facebook-engagement-mcp",
+    "env": {}
   }
 }

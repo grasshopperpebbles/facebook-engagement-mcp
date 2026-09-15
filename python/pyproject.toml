@@ -1,0 +1,28 @@
+[project]
+name = "facebook-engagement-mcp"
+version = "0.1.0"
+description = "MCP server for triaging comments on a Facebook Page — Python implementation"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = ["mcp>=2.2", "httpx>=0.27"]
+
+[project.scripts]
+facebook-engagement-mcp = "facebook_engagement_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/facebook_engagement_mcp"]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.6"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

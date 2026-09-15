@@ -131,7 +131,7 @@ function check(testCase, activity, stub) {
 
 async function runCase(implementation, testCase) {
   const stub = new GraphStub(hydrate(testCase.graph ?? {}))
-  const origin = await stub.listen()
+  const origin = await stub.listen(implementation.stubHost)
   const mcp = new McpProcess(implementation.cmd, {
     ...implementation.env,
     META_ACCESS_TOKEN: "conformance-token",
@@ -151,6 +151,14 @@ async function runCase(implementation, testCase) {
       return [`tool returned non-JSON content: ${text.slice(0, 300)}`]
     }
     return check(testCase, activity, stub)
+  } catch (error) {
+    // An implementation that will not start, or dies mid-call, is a FAILING
+    // CASE — not a crashed run. The first port found this the hard way: a
+    // Python import error took the whole suite down with a Node stack trace,
+    // so the one language whose result mattered reported nothing at all. A
+    // harness that cannot survive the failure it exists to detect is no better
+    // than a check that cannot fail.
+    return [String(error instanceof Error ? error.message : error)]
   } finally {
     await mcp.close()
     await stub.close()
