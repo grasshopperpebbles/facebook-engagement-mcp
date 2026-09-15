@@ -10,10 +10,19 @@ itself: **[Get your Meta access token](../docs/get-your-token.md)**.
 
 ## Install and run
 
+**From PyPI** (no git clone):
+
 ```bash
 pip install facebook-engagement-mcp        # or: uv pip install facebook-engagement-mcp
 META_ACCESS_TOKEN=EAA… facebook-engagement-mcp
 ```
+
+**From this monorepo** (if you want the git tree): clone
+`https://github.com/grasshopperpebbles/facebook-engagement-mcp.git`, or
+sparse-checkout only `python` + `docs` — see
+[Node → Get the repository](../node/README.md#get-the-repository-both-routes)
+(same commands, set `python docs` instead of `node docs`). Then install from
+`python/` with your usual tooling (`pip install -e .` / `uv sync`).
 
 It speaks MCP over stdio. To use it from a client, point that client's config at
 the `facebook-engagement-mcp` command with `META_ACCESS_TOKEN` in its
