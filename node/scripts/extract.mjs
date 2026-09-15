@@ -19,7 +19,10 @@ import { fileURLToPath } from "node:url"
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 const REPO = resolve(HERE, "..")
-const SOURCE = resolve(process.argv[2] ?? join(REPO, "..", "gpp-mcp"))
+// REPO is the `node/` package, not the repository root — so a sibling checkout
+// of gpp-mcp is TWO levels up, not one. This was one level until the
+// folder-per-language move (T-43).
+const SOURCE = resolve(process.argv[2] ?? join(REPO, "..", "..", "gpp-mcp"))
 
 const CLIENT = join(SOURCE, "packages/meta-client")
 const VENDOR_SRC = join(REPO, "src/vendor/meta-client")

@@ -8,8 +8,13 @@ import { MAX_CAMPAIGNS, runCommentActivity } from "../src/outcomes/activity.js"
 import { createServer } from "../src/server.js"
 import { createMetaClient, createPagesClient } from "../src/vendor/meta-client/index.js"
 
-const root = join(import.meta.dirname, "..")
-const fixture = (name: string) => readFileSync(join(root, "fixtures", `${name}.json`), "utf8")
+/**
+ * The repository root, two levels up: this package lives in `node/` and
+ * `fixtures/` is deliberately NOT inside it — the corpus is language-neutral and
+ * shared with every other implementation and with the conformance suite.
+ */
+const repoRoot = join(import.meta.dirname, "..", "..")
+const fixture = (name: string) => readFileSync(join(repoRoot, "fixtures", `${name}.json`), "utf8")
 
 /**
  * Serves the orientation fixtures. `overrides` replaces the response for a

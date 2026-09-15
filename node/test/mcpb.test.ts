@@ -15,6 +15,8 @@ import { describe, expect, it } from "vitest"
  */
 
 const root = join(import.meta.dirname, "..")
+/** The repository root: this package is `node/`, and `docs/` is a sibling of it. */
+const repoRoot = join(root, "..")
 
 interface Manifest {
   manifest_version: string
@@ -143,6 +145,12 @@ describe("mcpb manifest", () => {
   // suggests. Every in-repo link the manifest names is resolved against the
   // working tree here, offline, so a renamed doc breaks the build rather than
   // the install screen.
+  // `blob/main/<path>` is addressed from the REPOSITORY root, not from this
+  // package — so it resolves against `repoRoot`, one level up from `node/`.
+  // That distinction did not exist until the folder-per-language move (T-43),
+  // and this test caught it: the manifest's links were still correct, and the
+  // test was resolving them in the wrong place. Left as evidence that the check
+  // notices the ground moving under it, which is the only reason to have it.
   it("names only in-repo documents that exist", () => {
     const paths = [...JSON.stringify(manifest).matchAll(/blob\/main\/([\w./-]+\.md)/g)].map(
       (match) => match[1],
@@ -150,7 +158,7 @@ describe("mcpb manifest", () => {
 
     expect(paths.length).toBeGreaterThan(0)
     for (const path of paths) {
-      expect(existsSync(join(root, path)), `${path} is linked from the manifest`).toBe(true)
+      expect(existsSync(join(repoRoot, path)), `${path} is linked from the manifest`).toBe(true)
     }
   })
 })
