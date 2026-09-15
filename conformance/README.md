@@ -77,9 +77,18 @@ describes and confirming the case objects.
 | `a-dry-run-publishes-nothing` | echo the caller's text back | ✅ |
 
 Every one was then re-run against the **Python** implementation, breaking it the
-same ways. All caught. That is the check that makes these conformance
-cases rather than TypeScript tests: a case that discriminates in one language and
-not another is not testing the rule, it is testing an implementation.
+same ways. All caught. And again against **Go** (2026-09-15): all fourteen
+applied to `go-native`, and five of them — including both write cases, where the
+container and native entries once disagreed — also applied to the containerised
+`go` entry. All caught. That is the check that makes these conformance cases
+rather than TypeScript tests: a case that discriminates in one language and not
+another is not testing the rule, it is testing an implementation.
+
+Mutation 10 is worth a line on its own, as a note to whoever runs this next.
+"Ignore the creative's story id" does not compile in Go if you simply delete the
+lines — the creative becomes an unused variable. **A mutation that fails to build
+has not been tested**, and the first run recorded it as a build failure rather
+than quietly as a pass. Make it compile, then judge it.
 
 ### The one that did not catch its own mutation at first
 
@@ -153,6 +162,42 @@ things fell out that no amount of reading would have produced.
   conformance suite saw nothing — a unit test caught it. **Conformance over the
   wire does not cover everything**, and where a diagnosis is the product, it has
   to be tested where the diagnosis is made.
+
+## What the Go port found: a case that only forbade one wording
+
+Go passed 10/10 on its first run, from both entries. That is not the same as
+being right, and the mutation pass is the difference — it turned up a weakness in
+a **case**, not in the port.
+
+`no-author-anywhere-needs-reply` guards against restoring the cause T-42
+overturned: the claim that Graph returns `from` for a comment written by a Page
+and withholds it for one written by a person. It did that with three
+`notMatches` phrases, and those three are the exact wordings this project once
+shipped.
+
+**A paraphrase of the identical claim passed.** Injecting *"returns author
+information for comments authored by a Page and omits it for ones authored by an
+individual"* asserts precisely the overturned cause and matched none of the three
+patterns, so the case went green. The historical wording was caught; the same
+statement in different words was not.
+
+This is T-45's own lesson turned on the guard T-45 created. That finding was
+*"grep for what you fixed is only as good as the noun you grep for"*, and a
+forbidden-phrase list is only as good as the phrasings you thought of — which
+will always be the ones already written down, never the ones a future port
+invents.
+
+The fix is the suite's own rule about asserting behaviour rather than mechanism,
+applied to prose. Forbidding each way of stating the wrong cause is unbounded;
+**requiring the right one is not.** All four implementations already attribute
+the missing author to the credential rather than to who wrote the comment, so the
+case now requires that positively (`depends? on the credential`) alongside a
+wider — still not exhaustive — set of forbidden phrasings. A note that blames the
+author's identity cannot also say it depends on the credential, so the positive
+half is the load-bearing one.
+
+Re-verified across all six entries at 10/10, and three separate paraphrases now
+fail the case where two of them previously passed.
 
 ## In CI
 

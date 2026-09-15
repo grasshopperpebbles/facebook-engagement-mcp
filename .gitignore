@@ -20,3 +20,4 @@ python/__pycache__/
 python/**/__pycache__/
 python/.pytest_cache/
 python/.ruff_cache/
+go/bin/

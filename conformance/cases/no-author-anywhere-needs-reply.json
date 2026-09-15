@@ -87,10 +87,14 @@
     "notMatches": [
       "written by a person",
       "withholds it for comments",
-      "the Page has not replied to anything"
+      "the Page has not replied to anything",
+      "(authored|written) by (a|an) (individual|human|user)",
+      "(withholds|omits|hides) (it|author|authorship)[^.]{0,30}for",
+      "(person|individual|human)s? (wrote|authored) (it|the comment|them)"
     ],
     "matches": [
-      "over-report|already be handled"
+      "over-report|already be handled",
+      "depends? on the credential"
     ]
   }
 }

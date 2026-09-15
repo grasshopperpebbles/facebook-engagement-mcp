@@ -13,8 +13,9 @@ are available behind an explicit flag. Deleting is not offered at all.
 |---|---|---|
 | **[Node / TypeScript](./node/)** | **ready — v0.1.13** | A `.mcpb` bundle. Double-click it; Claude Desktop supplies the runtime. **[Start here](./node/README.md)** |
 | **[Python](./python/)** | **ready** — all three tools | a Python package (`pip install`). **[Details](./python/README.md)** |
+| **[Go](./go/)** | **ready** — all three tools | a Go module (`go install`). **[Details](./go/README.md)** |
 | PHP | not built yet | a PHP package |
-| Go | not built yet | a Go module |
+| C# / .NET | not built yet | a NuGet package |
 
 **If you are here to use this, you want [Node](./node/README.md).** Non-developers
 download a `.mcpb` from
@@ -51,6 +52,7 @@ it.
 
 ```
 node/              the TypeScript implementation and the .mcpb bundle
+go/                the Go implementation
 docs/              Meta setup, tokens and errors — shared by every language
 fixtures/          recorded Graph responses — shared by every language
 conformance/       the suite every implementation must pass
