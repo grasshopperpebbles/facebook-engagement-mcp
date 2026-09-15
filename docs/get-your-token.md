@@ -113,9 +113,22 @@ You are done with Meta console work when:
 - `me/accounts` lists your Page
 - A comments call works in the Explorer on the **Page** token (smoke test only)
 
-**Next step:** install [facebook-engagement-mcp (Node)](../node/README.md#install-and-configure) — double-click the `.mcpb` bundle in Claude Desktop, or configure from source — and paste the **long-lived user token** into **Meta access token**. Leave writes off until you need them.
+**Next step:**
 
-Then ask Claude about comments on your Page (for example: triage unanswered comments on the Page). If ads matter, read [dark posts](dark-posts.md) before assuming a Page sweep is complete.
+1. Clone
+   `https://github.com/grasshopperpebbles/facebook-engagement-mcp.git`
+   (optional: sparse-checkout only `node` + `docs` — see
+   [Get the repository](../node/README.md#get-the-repository-both-routes)).
+2. Follow
+   [Install and configure](../node/README.md#install-and-configure)
+   — for the `.mcpb` path: `cd node && npm install && npm run mcpb:pack`, then
+   double-click `node/build/facebook-engagement-mcp-<version>.mcpb`.
+3. Paste the **long-lived user token** into **Meta access token**. Leave writes
+   off until you need them.
+
+Then ask Claude about comments on your Page (for example: triage unanswered
+comments on the Page). If ads matter, read [dark posts](dark-posts.md) before
+assuming a Page sweep is complete.
 
 ## If something does not work
 

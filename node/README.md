@@ -74,8 +74,8 @@ error messages that mislead are under [Troubleshooting](#troubleshooting).
 | | Route 1: `.mcpb` bundle | Route 2: from source |
 |---|---|---|
 | Who it is for | Anyone. No developer skills needed | Developers, and anyone using Claude Code or Cursor |
-| What they do | Double-click a file, fill in two fields | Clone, `npm install`, edit a JSON config |
-| Needs a terminal | No | Yes |
+| What they do | Get a `.mcpb` file, double-click it, fill in two fields | Clone (or sparse-checkout), `npm install` in `node/`, edit a JSON config |
+| Needs a terminal | Only if you build the bundle yourself | Yes |
 | Needs Node installed | No — Claude Desktop ships its own | Yes, Node 22+ |
 | Needs to edit JSON | No | Yes |
 | Works in | Claude Desktop only | Claude Desktop, Claude Code, Cursor |
@@ -87,13 +87,71 @@ Route 1 removes is everything *else*: no terminal, no JSON, no Node install. The
 token arrives as a string you hand over, pasted into a masked form field rather
 than typed into a config file.
 
+### Get the repository (both routes)
+
+This project is a **multi-language monorepo**. Node lives under `node/`, Python
+under `python/`, shared Meta docs under `docs/`. There is no separate Node-only
+GitHub repo and no npm package today — you clone this repository (or take a
+pre-built `.mcpb` from whoever built it).
+
+**Full clone** (simplest):
+
+```bash
+git clone https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
+cd facebook-engagement-mcp
+```
+
+**Sparse checkout — Node only** (skips `python/`, `go/`, etc.; keep `docs/` for
+the token guides):
+
+```bash
+git clone --filter=blob:none --sparse \
+  https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
+cd facebook-engagement-mcp
+git sparse-checkout set node docs
+```
+
+**Sparse checkout — Python only:**
+
+```bash
+git clone --filter=blob:none --sparse \
+  https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
+cd facebook-engagement-mcp
+git sparse-checkout set python docs
+```
+
+Then follow [Python install](../python/README.md) (or `pip install
+facebook-engagement-mcp` if you want the published package and do not need the
+git tree).
+
+Sparse checkout is optional. A full clone is small; use sparse only if you want
+to avoid the other language trees.
+
 ### As a Claude Desktop extension (`.mcpb`) — the route for someone who is not a developer
 
-Claude Desktop installs a bundle from a single file. The person installing it
-double-clicks `facebook-engagement-mcp-<version>.mcpb`, fills in two fields on
-the install screen, and is done — **no terminal, no JSON, no Node install**
-(Claude Desktop supplies its own Node), and nothing to sign, because a bundle
-is installed by Claude Desktop rather than judged by macOS Gatekeeper.
+Claude Desktop installs a bundle from a **single `.mcpb` file**. You need that
+file first — it is not installed from the GitHub UI by itself, and there is no
+App Store listing.
+
+**How to get the `.mcpb`:**
+
+1. **Someone builds it and sends you the file** (common for marketers: a
+   developer runs the steps below once and shares
+   `facebook-engagement-mcp-<version>.mcpb`), **or**
+2. **You build it yourself** after [getting the repository](#get-the-repository-both-routes):
+
+```bash
+cd node
+npm install
+npm run mcpb:pack      # writes node/build/facebook-engagement-mcp-<version>.mcpb
+npm run mcpb:verify    # unpacks it and launches it — do not skip this
+```
+
+Then double-click
+`node/build/facebook-engagement-mcp-<version>.mcpb`, fill in two fields on the
+install screen, and you are done — **no JSON, no Node install for the end
+user** (Claude Desktop supplies its own Node). Nothing to sign: a bundle is
+installed by Claude Desktop rather than judged by macOS Gatekeeper.
 
 The two fields are the ones under `user_config` in
 [`mcpb/manifest.json`](./mcpb/manifest.json): the **Meta access token**, which
@@ -106,13 +164,6 @@ token chain — redone every 60 days, unless you use a [System User
 token](../docs/system-user-token.md), which does not expire. The full walkthrough is
 **[docs/setup-tokens-permissions.md](../docs/setup-tokens-permissions.md)**; the
 short version is under [Getting a token](#getting-a-token).
-
-Build the bundle:
-
-```bash
-npm run mcpb:pack      # builds, stages, installs prod deps, writes build/*.mcpb
-npm run mcpb:verify    # unpacks it and launches it — do not skip this
-```
 
 **`mcpb:verify` is not a formality.** This project has already shipped an entry
 point that exited 0 having started nothing, because a guard comparing
@@ -166,32 +217,35 @@ than destroyed.
 
 **Most people should install the bundle above, not this.** Installing from
 source is for developing on the server or running it under a client other than
-Claude Desktop:
+Claude Desktop.
+
+After [getting the repository](#get-the-repository-both-routes) (full or
+sparse):
 
 ```bash
-git clone https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
-cd facebook-engagement-mcp
+cd node
 npm install
 ```
 
 `npm install` builds the server as part of its `prepare` step, leaving a
-runnable entry point at `<checkout>/dist/index.js`. Take note of that absolute
-path — the client configuration below needs it. After editing anything under
-`src/`, rebuild with `npm run build`.
+runnable entry point at `<checkout>/node/dist/index.js`. Take note of that
+absolute path — the client configuration below needs it. After editing anything
+under `src/`, rebuild with `npm run build`.
 
-Installing straight from the git URL works too, and builds itself the same
-way:
+Do **not** run `npm install` at the repository root — there is no root
+`package.json`. The Node package is only under `node/`. Likewise,
+`npm install github:grasshopperpebbles/facebook-engagement-mcp` does **not**
+work today: npm expects `package.json` at the repo root, and this monorepo
+keeps it in `node/`.
 
-```bash
-npm install github:grasshopperpebbles/facebook-engagement-mcp
-```
-
-Once the package is published, none of that is needed and it runs the way any
-`npx`-launched MCP server does:
+Once the package is published to npm, none of that is needed and it runs the way
+any `npx`-launched MCP server does:
 
 ```bash
 npx facebook-engagement-mcp
 ```
+
+That form does **not** work before publish.
 
 The server reads two environment variables and nothing else — no argument to
 any tool ever supplies a credential:
@@ -204,16 +258,14 @@ any tool ever supplies a credential:
 See [`.env.example`](./.env.example).
 
 Every configuration below launches the checkout directly: `node`, with one
-argument — the absolute path to `dist/index.js` inside the directory you
-cloned. Replace `/absolute/path/to/facebook-engagement-mcp` with your own.
-These work today. Once the package is published to npm, `"command": "npx"`
-with `"args": ["-y", "facebook-engagement-mcp"]` becomes the correct form and
-the checkout stops being necessary; that form does **not** work before then.
+argument — the absolute path to `dist/index.js` inside the **`node/`**
+directory you installed. Replace
+`/absolute/path/to/facebook-engagement-mcp/node` with your own.
 
 ### Claude Code
 
 ```bash
-claude mcp add facebook-engagement -e META_ACCESS_TOKEN=your-user-access-token-here -e FACEBOOK_ENGAGEMENT_ENABLE_WRITES=false -- node /absolute/path/to/facebook-engagement-mcp/dist/index.js
+claude mcp add facebook-engagement -e META_ACCESS_TOKEN=your-user-access-token-here -e FACEBOOK_ENGAGEMENT_ENABLE_WRITES=false -- node /absolute/path/to/facebook-engagement-mcp/node/dist/index.js
 ```
 
 or, in `.mcp.json`:
@@ -223,7 +275,7 @@ or, in `.mcp.json`:
   "mcpServers": {
     "facebook-engagement": {
       "command": "node",
-      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/facebook-engagement-mcp/node/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
@@ -242,7 +294,7 @@ In `claude_desktop_config.json`:
   "mcpServers": {
     "facebook-engagement": {
       "command": "node",
-      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/facebook-engagement-mcp/node/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"
@@ -261,7 +313,7 @@ In `.cursor/mcp.json`:
   "mcpServers": {
     "facebook-engagement": {
       "command": "node",
-      "args": ["/absolute/path/to/facebook-engagement-mcp/dist/index.js"],
+      "args": ["/absolute/path/to/facebook-engagement-mcp/node/dist/index.js"],
       "env": {
         "META_ACCESS_TOKEN": "your-user-access-token-here",
         "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false"

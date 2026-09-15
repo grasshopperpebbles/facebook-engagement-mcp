@@ -954,10 +954,15 @@ this next:
    Access Token** — not the Page token you used to test comments. The server
    field is `META_ACCESS_TOKEN`; it exchanges the user token for Page tokens
    itself.
-2. **Install facebook-engagement-mcp.** Prefer the Node `.mcpb` bundle
-   (double-click in Claude Desktop, no terminal):
-   **[Install and configure](../node/README.md#install-and-configure)**. Other
-   languages: [repository README](../README.md#pick-your-language).
+2. **Get the server onto your machine.** Clone
+   `https://github.com/grasshopperpebbles/facebook-engagement-mcp.git` (or
+   sparse-checkout `node` + `docs` — see
+   [Get the repository](../node/README.md#get-the-repository-both-routes)).
+   Prefer the Node `.mcpb` bundle: `cd node && npm install && npm run mcpb:pack`,
+   then double-click `node/build/facebook-engagement-mcp-<version>.mcpb` in
+   Claude Desktop. Full steps:
+   **[Install and configure](../node/README.md#install-and-configure)**.
+   Other languages: [repository README](../README.md#pick-your-language).
 3. **Paste that long-lived user token** into **Meta access token** on the
    install form (or your client's env / config). Leave writes off until you
    intend to reply or hide.

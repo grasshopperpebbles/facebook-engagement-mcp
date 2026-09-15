@@ -17,10 +17,16 @@ are available behind an explicit flag. Deleting is not offered at all.
 | Go | not built yet | a Go module |
 
 **If you are here to use this, you want [Node](./node/README.md).** It is the
-only one that exists, and the only one that ships as a double-clickable
-installer — Claude Desktop ships its own Node runtime, so there is nothing to
-install first and no JSON to edit. The others, when they arrive, are packages you
-install with your own language's tooling.
+one that ships as a double-clickable installer — Claude Desktop ships its own
+Node runtime, so there is nothing to install first and no JSON to edit. Python
+is ready as a package; PHP and Go are not built yet.
+
+**One repo, several languages.** Clone
+`https://github.com/grasshopperpebbles/facebook-engagement-mcp.git`, then work
+in `node/` or `python/`. To pull only one language tree (plus shared `docs/`),
+use git sparse-checkout — examples are under
+[Node → Get the repository](./node/README.md#get-the-repository-both-routes).
+There is no separate per-language GitHub repository.
 
 ## Getting a token is the hard part, and it is language-neutral
 
