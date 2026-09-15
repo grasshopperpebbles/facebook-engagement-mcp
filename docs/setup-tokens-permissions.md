@@ -314,7 +314,28 @@ enumerates. I've hit two distinct versions of this:
   the account types look linked in the UI and are not linked in the way the API
   means.
 
-Check what Graph actually sees before debugging anything downstream:
+Check what Graph actually sees before debugging anything downstream. You do
+**not** need a terminal for this.
+
+**In Graph API Explorer** (the path marketers should use — same tool you already
+opened for the token):
+
+1. Stay on a **user** token from **Get User Access Token** (not a Page under
+   **Page Access Tokens**).
+2. In the path field, enter:
+
+   ```text
+   me/accounts?fields=id,name,tasks
+   ```
+
+3. Leave the method on **GET** and click **Submit**.
+
+You should see a `data` array of Pages. Each entry's `id` and `name` are what
+matter; `tasks` should include `MODERATE` if you will reply or hide. If `data`
+is `[]`, go back to the empty-list checklist above — including
+`business_management` — before chasing ownership.
+
+**Optional, for developers** — the same call from a shell:
 
 ```bash
 curl -s -H "Authorization: Bearer $USER_TOKEN" \

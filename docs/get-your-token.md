@@ -44,10 +44,24 @@ return `{"data": []}` even when the Page permissions are present — see
 ## 3. Generate a token
 
 Open the [Graph API Explorer](https://developers.facebook.com/tools/explorer/),
-select your app, select the permissions above, and click **Generate Access
-Token**. Approve the Page when it asks.
+select your app, open **User or Page → Get User Access Token**, select the
+permissions above, and complete consent with **Edit settings** (not Continue).
+Approve the Pages when it asks.
 
 This token expires in about an hour. That is expected — step 4 fixes it.
+
+**Check that Pages came through (no terminal).** In the Explorer path field,
+submit:
+
+```text
+me/accounts?fields=id,name,tasks
+```
+
+You want your Page in the `data` array. Empty `data` usually means missing
+`business_management` or an empty Page grant — see
+[empty `/me/accounts`](setup-tokens-permissions.md#empty-data--from-meaccounts).
+Developers who prefer a shell can use the `curl` examples in that guide; marketers
+should stay in the Explorer.
 
 ## 4. Make it last
 
