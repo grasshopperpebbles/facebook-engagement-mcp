@@ -113,6 +113,27 @@ see listed on the screen in front of you.
 I wrote this one up when it happened:
 Adding the Use Case Didn't Add the Permission.
 
+### Where the Page permissions live — **Manage everything on your Page**
+
+`pages_read_user_content` (and the other Page scopes in the table below) are
+**not** under Ads and monetization. They belong to the Pages use case:
+
+1. **App Dashboard → Add Use Case**.
+2. Filter or browse under **Pages** (category names in the picker vary slightly;
+   look for Page management, not ads).
+3. Choose **Manage everything on your Page**.
+4. **Save.** The use case appears under *App customization and requirements*.
+5. Open **Customize the Manage everything on your Page use case**. Add the
+   permissions from the table below if they are not already listed — including
+   **`pages_read_user_content`**. Some defaults (`pages_show_list`, often
+   `business_management`) may already be present; do not assume the comment
+   scopes are among them.
+
+Selecting this use case still does **not** put those permissions on an existing
+token. After the dashboard lists them (Ready for testing is enough in
+development mode), remint with **Get User Access Token** and tick them in that
+dialog.
+
 **Add these four — all of them, in the same token grant:**
 
 | Permission | What it covers | App Review |
@@ -151,13 +172,13 @@ Add it in the Explorer permission picker when you **Get User Access Token**. It
 is a user-token scope. Confirm it in **Tools → Access Token Debugger** (Step 4)
 alongside the four Page permissions.
 
-### And a fifth for ads — which is not on that page at all
+### And a fifth for ads — which is not on that Pages use case at all
 
 `ads_read` is the permission that lets you resolve an ad to the post behind it,
 and it is the one the [Comments on ads](#comments-on-ads-where-the-documentation-is-wrong)
-section below depends on entirely. **You will not find it in the permissions
-list you just used.** It belongs to the Marketing API, a different product
-surface, and the Pages use case will never show it however far you scroll.
+section below depends on entirely. **You will not find it under Manage
+everything on your Page**, however far you scroll. It belongs to the Marketing
+API, a different product surface.
 
 It needs a second use case on the same app. Walked on screen, 2026-09-08:
 
@@ -890,7 +911,9 @@ The setup above is the resolution to a series of things that went wrong first:
   (that one is using a user token where a Page token is required).
 - Selecting a **use case is not granting a permission**, and a token minted
   before you added a permission does not carry it. Verify in **Access Token
-  Debugger**. For ads: open **User or Page → Get User Access Token** and select
+  Debugger**. Page scopes (including `pages_read_user_content`) live under
+  **Add Use Case → Pages → Manage everything on your Page**. For ads: a second
+  use case under **Ads and monetization**, then **Get User Access Token** with
   the Page scopes, `business_management`, and `ads_read` — not `ads_read`
   alone. Skip `ads_read` if you only sweep Pages.
 - **You cannot name the app after the platform.** `Facebook`, `Meta` and their

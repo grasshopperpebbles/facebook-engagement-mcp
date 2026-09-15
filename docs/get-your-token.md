@@ -24,8 +24,11 @@ variant. Meta rejects it without explaining why.
 
 ## 2. Ask for the permissions
 
-In the app, add these. Selecting a use case is *not* the same as being granted
-a permission — you have to grant them explicitly.
+Selecting a use case is *not* the same as being granted a permission — you still
+have to add them on the use case and tick them when you mint the token.
+
+**Page permissions** — App Dashboard → **Add Use Case** → **Pages** →
+**Manage everything on your Page** → **Customize**, then add:
 
 | Permission | What it gets you |
 |---|---|
@@ -34,6 +37,13 @@ a permission — you have to grant them explicitly.
 | `pages_read_user_content` | Reading the comments — **required; tick it in the same dialog as the others**. Not the same as `pages_read_engagement` |
 | `pages_manage_engagement` | Replying and hiding (only if you want writes) |
 | `business_management` | `/me/accounts` actually returns Pages when they live under a Business Portfolio — without it the list is often empty |
+
+**Ads (optional)** — a *second* use case: **Ads and monetization** → **Measure
+ad performance data with Marketing API**. That is where **`ads_read`** lives;
+it will not appear under Manage everything on your Page.
+
+| Permission | What it gets you |
+|---|---|
 | `ads_read` | Comments on your ads |
 
 Select the Page permissions **together** when you **Get User Access Token**.
@@ -42,6 +52,8 @@ error. Leave out `ads_read` and comments on ads stay invisible — see
 [why](dark-posts.md). Leave out `business_management` and `/me/accounts` may
 return `{"data": []}` even when the Page permissions are present — see
 [empty `/me/accounts`](setup-tokens-permissions.md#empty-data--from-meaccounts).
+
+Full walkthrough: [setup, tokens and permissions](setup-tokens-permissions.md#where-the-page-permissions-live--manage-everything-on-your-page).
 
 ## 3. Generate a token
 
