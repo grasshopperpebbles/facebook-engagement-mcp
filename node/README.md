@@ -74,7 +74,7 @@ error messages that mislead are under [Troubleshooting](#troubleshooting).
 | | Route 1: `.mcpb` bundle | Route 2: from source |
 |---|---|---|
 | Who it is for | Non-developers | Developers (Claude Code, Cursor, contributing) |
-| What they do | **Download** a `.mcpb`, double-click it, fill in two fields | Clone the repo, `npm install` in `node/`, edit JSON |
+| What they do | **Download** a `.mcpb`, install it in Claude Desktop, fill in two fields | Clone the repo, `npm install` in `node/`, edit JSON |
 | Needs git or a terminal | **No** | Yes |
 | Needs Node installed | No — Claude Desktop ships its own | Yes, Node 22+ |
 | Needs to edit JSON | No | Yes |
@@ -95,7 +95,19 @@ You do **not** need git, a terminal, or Node.
      (Assets → `facebook-engagement-mcp-<version>.mcpb`), or
    - Receive the file from whoever maintains your Meta app / this server (they
      build it once; you only install it).
-2. **Double-click** the `.mcpb`. Claude Desktop opens the install screen.
+2. **Install the `.mcpb` into Claude Desktop** (Claude must already be
+   installed). Prefer one of these — especially on **Windows**, where
+   double-click often fails because Windows does not know that `.mcpb`
+   belongs to Claude:
+
+   - **Settings path (most reliable):** open Claude Desktop → **Settings** →
+     **Extensions** → **Advanced settings** → **Install Extension…** → choose
+     the downloaded `.mcpb`.
+   - **Drag and drop:** drag the `.mcpb` onto an open Claude Desktop window.
+   - **Double-click:** works on some Macs. On Windows, if you get “How do you
+     want to open this file?” and Claude is not listed, **cancel** — do not
+     pick another app. Use Settings or drag-and-drop instead.
+
 3. Paste your Meta **user** access token into **Meta access token** (the field
    is masked). Leave **replying and hiding** off unless you intend to write.
 4. Finish install. Ask Claude about comments on your Page.

@@ -118,8 +118,11 @@ You are done with Meta console work when:
 1. Download `facebook-engagement-mcp-<version>.mcpb` from
    [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
    (or get the file from whoever maintains the server).
-2. Double-click it in Claude Desktop and paste the **long-lived user token**
-   into **Meta access token**. Leave writes off until you need them.
+2. Install it in Claude Desktop (**Settings → Extensions → Advanced settings →
+   Install Extension…**, or drag the file onto Claude). On Windows, do not
+   rely on double-click if Windows asks which app to use. Paste the
+   **long-lived user token** into **Meta access token**. Leave writes off
+   until you need them.
 3. Ask Claude about comments on your Page.
 
 Details:

@@ -967,7 +967,10 @@ this next:
 2. **Install the Claude Desktop extension (no git).** Download
    `facebook-engagement-mcp-<version>.mcpb` from
    [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases) (or get the file from whoever maintains the
-   server), double-click it, and paste the long-lived **user** token into
+   server). Install it in Claude Desktop (**Settings → Extensions → Advanced
+   settings → Install Extension…**, or drag the `.mcpb` onto Claude — on
+   Windows, skip double-click if the OS asks which app to use), and paste the
+   long-lived **user** token into
    **Meta access token**. Leave writes off until you intend to reply or hide.
    Full steps: **[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--non-developers-start-here)**.
 3. **Ask the model to triage comments** on your Page (unanswered threads, a
