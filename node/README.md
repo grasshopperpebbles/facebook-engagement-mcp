@@ -137,7 +137,19 @@ Distinguish two failures:
 7. If install still never sticks, this is often a **Claude Desktop on Windows** bug (package stages but never registers). Check whether folders named `dxt-install-*` keep appearing under Claude’s AppData while nothing shows in Extensions. Workarounds people use: fully quit → install once more → restart; or fall back to a developer installing via
    [from source](#from-source--developers-only) / `claude_desktop_config.json` (needs Node).
 
-**When it appears but tools are missing:** open the extension’s settings, confirm **Meta access token** is filled, leave writes off for a first test, fully quit and relaunch, then ask again in a **new** chat.
+**When it appears under Manage → Connectors but there is no Connect button:**
+that is normal for a **local** `.mcpb` extension. Remote connectors
+(Google, Slack, …) need Connect/OAuth; desktop extensions do not. Look for
+an **on/off toggle** (or open the row to see tools), not a Connect button.
+
+**When it is listed but Claude still has no tools:**
+
+1. Confirm **Settings → Extensions** shows **Facebook Page Comments** enabled,
+   with the Meta token saved (writes off for a first test).
+2. In the chat **+ → Connectors → Tool access**, try **Always available**
+   (Auto can leave local tools unloaded).
+3. Fully quit Claude (tray → Quit), reopen, start a **new** chat, and ask
+   something that needs the tools (e.g. what Pages you can reach).
 
 The two install fields come from `user_config` in
 [`mcpb/manifest.json`](./mcpb/manifest.json). Claude Desktop encrypts the
