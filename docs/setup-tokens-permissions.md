@@ -358,8 +358,8 @@ enumerates. I've hit two distinct versions of this:
 Check what Graph actually sees before debugging anything downstream. You do
 **not** need a terminal for this.
 
-**In Graph API Explorer** (the path marketers should use — same tool you already
-opened for the token):
+**In Graph API Explorer** (the path non-developers should use — same tool you
+already opened for the token):
 
 1. Stay on a **user** token from **Get User Access Token** (not a Page under
    **Page Access Tokens**).
@@ -960,14 +960,14 @@ this next:
    (or get the file from whoever maintains the server), double-click it, and
    paste the long-lived **user** token into **Meta access token**. Leave writes
    off until you intend to reply or hide. Full steps:
-   **[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--marketers-start-here)**.
+   **[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--non-developers-start-here)**.
 3. **Ask the model to triage comments** on your Page (unanswered threads, a
    specific post, or orientation with no target to list what the token can
    reach).
 
 Developers who need source, Claude Code, or Cursor: see
 [From source — developers only](../node/README.md#from-source--developers-only)
-(that path uses git; marketers do not).
+(that path uses git; non-developers do not).
 
 Still useful after that:
 

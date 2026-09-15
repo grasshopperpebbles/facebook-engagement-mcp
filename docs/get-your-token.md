@@ -74,8 +74,8 @@ me/accounts?fields=id,name,tasks
 You want your Page in the `data` array. Empty `data` usually means missing
 `business_management` or an empty Page grant — see
 [empty `/me/accounts`](setup-tokens-permissions.md#empty-data--from-meaccounts).
-Developers who prefer a shell can use the `curl` examples in that guide; marketers
-should stay in the Explorer.
+Developers who prefer a shell can use the `curl` examples in that guide;
+non-developers should stay in the Explorer.
 
 ## 4. Make it last
 
@@ -113,7 +113,7 @@ You are done with Meta console work when:
 - `me/accounts` lists your Page
 - A comments call works in the Explorer on the **Page** token (smoke test only)
 
-**Next step (marketers — no git):**
+**Next step (non-developers — no git):**
 
 1. Download `facebook-engagement-mcp-<version>.mcpb` from
    [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
@@ -123,7 +123,7 @@ You are done with Meta console work when:
 3. Ask Claude about comments on your Page.
 
 Details:
-[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--marketers-start-here).
+[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--non-developers-start-here).
 Developers who need source: [From source](../node/README.md#from-source--developers-only).
 
 If ads matter, read [dark posts](dark-posts.md) before assuming a Page sweep is

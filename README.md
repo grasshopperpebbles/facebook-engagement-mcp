@@ -16,11 +16,11 @@ are available behind an explicit flag. Deleting is not offered at all.
 | PHP | not built yet | a PHP package |
 | Go | not built yet | a Go module |
 
-**If you are here to use this, you want [Node](./node/README.md).** Marketers
+**If you are here to use this, you want [Node](./node/README.md).** Non-developers
 download a `.mcpb` from
 [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
 and double-click it — **no git**. See
-[Install for marketers](./node/README.md#as-a-claude-desktop-extension-mcpb--marketers-start-here).
+[Install for non-developers](./node/README.md#as-a-claude-desktop-extension-mcpb--non-developers-start-here).
 
 **Developers** who need source: one monorepo (`node/`, `python/`, shared
 `docs/`). Clone or sparse-checkout under

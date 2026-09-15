@@ -69,11 +69,11 @@ error messages that mislead are under [Troubleshooting](#troubleshooting).
 
 ## Install and configure
 
-**Two routes. Marketers use Route 1. Developers use Route 2.**
+**Two routes. Non-developers use Route 1. Developers use Route 2.**
 
 | | Route 1: `.mcpb` bundle | Route 2: from source |
 |---|---|---|
-| Who it is for | Marketers / anyone who is not a developer | Developers (Claude Code, Cursor, contributing) |
+| Who it is for | Non-developers | Developers (Claude Code, Cursor, contributing) |
 | What they do | **Download** a `.mcpb`, double-click it, fill in two fields | Clone the repo, `npm install` in `node/`, edit JSON |
 | Needs git or a terminal | **No** | Yes |
 | Needs Node installed | No — Claude Desktop ships its own | Yes, Node 22+ |
@@ -85,7 +85,7 @@ error messages that mislead are under [Troubleshooting](#troubleshooting).
 [Getting a token](#getting-a-token). Route 1 removes everything else: no git,
 no terminal, no JSON, no Node install.
 
-### As a Claude Desktop extension (`.mcpb`) — marketers start here
+### As a Claude Desktop extension (`.mcpb`) — non-developers start here
 
 You do **not** need git, a terminal, or Node.
 
@@ -100,8 +100,8 @@ You do **not** need git, a terminal, or Node.
    is masked). Leave **replying and hiding** off unless you intend to write.
 4. Finish install. Ask Claude about comments on your Page.
 
-That is the whole marketer path. Stop here unless you are developing the
-server.
+That is the whole non-developer path. Stop here unless you are developing
+the server.
 
 The two install fields come from `user_config` in
 [`mcpb/manifest.json`](./mcpb/manifest.json). Claude Desktop encrypts the
@@ -126,11 +126,11 @@ end through the installed bundle.
 
 ### From source — developers only
 
-Requires Node 22+, **git**, and a terminal. Marketers should use the `.mcpb`
-route above — not this section.
+Requires Node 22+, **git**, and a terminal. Non-developers should use the
+`.mcpb` route above — not this section.
 
-This package is **deliberately not published to npm**; marketers get the
-double-clickable bundle, not `npx`.
+This package is **deliberately not published to npm**; non-developers get
+the double-clickable bundle, not `npx`.
 
 #### Clone the repository
 
@@ -179,7 +179,7 @@ Do **not** run `npm install` at the repository root (no root `package.json`).
 `npm install github:grasshopperpebbles/facebook-engagement-mcp` also fails
 today for the same reason.
 
-#### Build the `.mcpb` for marketers (or for Releases)
+#### Build the `.mcpb` for non-developers (or for Releases)
 
 ```bash
 cd node
@@ -188,7 +188,7 @@ npm run mcpb:pack      # writes node/build/facebook-engagement-mcp-<version>.mcp
 npm run mcpb:verify    # required — packing alone is not evidence it launches
 ```
 
-Send that file to marketers, or attach it on the
+Send that file to non-developers, or attach it on the
 [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
 page so they can download it in a browser — no git on their side.
 

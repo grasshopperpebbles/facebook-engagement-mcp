@@ -28,7 +28,7 @@ environment.
 
 **There is no double-clickable installer for this build, deliberately.** The
 `.mcpb` bundle is Node-only because Claude Desktop ships a Node runtime — that is
-the entire reason marketers can install without git or a terminal. Python
+the entire reason non-developers can install without git or a terminal. Python
 installs the way Python installs.
 
 ## What this build does
