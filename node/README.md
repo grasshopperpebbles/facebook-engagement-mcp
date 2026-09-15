@@ -69,40 +69,82 @@ error messages that mislead are under [Troubleshooting](#troubleshooting).
 
 ## Install and configure
 
-**Two routes, and which one you want depends on who is installing.**
+**Two routes. Marketers use Route 1. Developers use Route 2.**
 
 | | Route 1: `.mcpb` bundle | Route 2: from source |
 |---|---|---|
-| Who it is for | Anyone. No developer skills needed | Developers, and anyone using Claude Code or Cursor |
-| What they do | Get a `.mcpb` file, double-click it, fill in two fields | Clone (or sparse-checkout), `npm install` in `node/`, edit a JSON config |
-| Needs a terminal | Only if you build the bundle yourself | Yes |
+| Who it is for | Marketers / anyone who is not a developer | Developers (Claude Code, Cursor, contributing) |
+| What they do | **Download** a `.mcpb`, double-click it, fill in two fields | Clone the repo, `npm install` in `node/`, edit JSON |
+| Needs git or a terminal | **No** | Yes |
 | Needs Node installed | No — Claude Desktop ships its own | Yes, Node 22+ |
 | Needs to edit JSON | No | Yes |
 | Works in | Claude Desktop only | Claude Desktop, Claude Code, Cursor |
 | Still needs a token | **Yes** | **Yes** |
 
-**No route removes the token.** Somebody has to create a Meta app and mint one,
-and that somebody is a developer — see [Getting a token](#getting-a-token). What
-Route 1 removes is everything *else*: no terminal, no JSON, no Node install. The
-token arrives as a string you hand over, pasted into a masked form field rather
-than typed into a config file.
+**No route removes the token.** Minting a Meta token is separate — see
+[Getting a token](#getting-a-token). Route 1 removes everything else: no git,
+no terminal, no JSON, no Node install.
 
-### Get the repository (both routes)
+### As a Claude Desktop extension (`.mcpb`) — marketers start here
 
-This project is a **multi-language monorepo**. Node lives under `node/`, Python
-under `python/`, shared Meta docs under `docs/`. There is no separate Node-only
-GitHub repo and no npm package today — you clone this repository (or take a
-pre-built `.mcpb` from whoever built it).
+You do **not** need git, a terminal, or Node.
 
-**Full clone** (simplest):
+1. **Get the `.mcpb` file** — one of:
+   - Download it from
+     [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
+     (Assets → `facebook-engagement-mcp-<version>.mcpb`), or
+   - Receive the file from whoever maintains your Meta app / this server (they
+     build it once; you only install it).
+2. **Double-click** the `.mcpb`. Claude Desktop opens the install screen.
+3. Paste your Meta **user** access token into **Meta access token** (the field
+   is masked). Leave **replying and hiding** off unless you intend to write.
+4. Finish install. Ask Claude about comments on your Page.
+
+That is the whole marketer path. Stop here unless you are developing the
+server.
+
+The two install fields come from `user_config` in
+[`mcpb/manifest.json`](./mcpb/manifest.json). Claude Desktop encrypts the
+token at rest.
+
+**Somebody still has to produce that token** — Meta app, permissions, long-lived
+user token — see **[docs/get-your-token.md](../docs/get-your-token.md)** or the
+full **[setup guide](../docs/setup-tokens-permissions.md)**. Prefer a
+[System User token](../docs/system-user-token.md) if you do not want a 60-day
+renewal.
+
+**What the install shows:** a red banner that the extension can access
+everything on your computer and is not verified by Anthropic. That is true of
+every unsigned local extension. Tell non-technical installers it is expected.
+
+Claude Desktop groups tools by annotations (*Read-only* / *Write/delete*). The
+`readOnlyHint` and `destructiveHint` values are load-bearing UI.
+
+**Verified 2026-09-08:** sensitive token encrypted at rest; writes checkbox
+registers the correct tools; ad → creative → dark post → comments ran end to
+end through the installed bundle.
+
+### From source — developers only
+
+Requires Node 22+, **git**, and a terminal. Marketers should use the `.mcpb`
+route above — not this section.
+
+This package is **deliberately not published to npm**; marketers get the
+double-clickable bundle, not `npx`.
+
+#### Clone the repository
+
+This is a **multi-language monorepo** (`node/`, `python/`, shared `docs/`).
+There is no separate Node-only GitHub repo.
+
+**Full clone:**
 
 ```bash
 git clone https://github.com/grasshopperpebbles/facebook-engagement-mcp.git
 cd facebook-engagement-mcp
 ```
 
-**Sparse checkout — Node only** (skips `python/`, `go/`, etc.; keep `docs/` for
-the token guides):
+**Sparse checkout — Node (+ docs) only:**
 
 ```bash
 git clone --filter=blob:none --sparse \
@@ -111,7 +153,7 @@ cd facebook-engagement-mcp
 git sparse-checkout set node docs
 ```
 
-**Sparse checkout — Python only:**
+**Sparse checkout — Python (+ docs) only:**
 
 ```bash
 git clone --filter=blob:none --sparse \
@@ -120,126 +162,41 @@ cd facebook-engagement-mcp
 git sparse-checkout set python docs
 ```
 
-Then follow [Python install](../python/README.md) (or `pip install
-facebook-engagement-mcp` if you want the published package and do not need the
-git tree).
+Then see [Python install](../python/README.md), or install from PyPI with no
+clone: `pip install facebook-engagement-mcp`.
 
-Sparse checkout is optional. A full clone is small; use sparse only if you want
-to avoid the other language trees.
+#### Install and run from `node/`
 
-### As a Claude Desktop extension (`.mcpb`) — the route for someone who is not a developer
+```bash
+cd node
+npm install                 # builds dist/ via prepare
+```
 
-Claude Desktop installs a bundle from a **single `.mcpb` file**. You need that
-file first — it is not installed from the GitHub UI by itself, and there is no
-App Store listing.
+Entry point: `<checkout>/node/dist/index.js`. After editing `src/`, run
+`npm run build`.
 
-**How to get the `.mcpb`:**
+Do **not** run `npm install` at the repository root (no root `package.json`).
+`npm install github:grasshopperpebbles/facebook-engagement-mcp` also fails
+today for the same reason.
 
-1. **Someone builds it and sends you the file** (common for marketers: a
-   developer runs the steps below once and shares
-   `facebook-engagement-mcp-<version>.mcpb`), **or**
-2. **You build it yourself** after [getting the repository](#get-the-repository-both-routes):
+#### Build the `.mcpb` for marketers (or for Releases)
 
 ```bash
 cd node
 npm install
 npm run mcpb:pack      # writes node/build/facebook-engagement-mcp-<version>.mcpb
-npm run mcpb:verify    # unpacks it and launches it — do not skip this
+npm run mcpb:verify    # required — packing alone is not evidence it launches
 ```
 
-Then double-click
-`node/build/facebook-engagement-mcp-<version>.mcpb`, fill in two fields on the
-install screen, and you are done — **no JSON, no Node install for the end
-user** (Claude Desktop supplies its own Node). Nothing to sign: a bundle is
-installed by Claude Desktop rather than judged by macOS Gatekeeper.
-
-The two fields are the ones under `user_config` in
-[`mcpb/manifest.json`](./mcpb/manifest.json): the **Meta access token**, which
-is marked `sensitive` so it is masked on entry, and a **checkbox for replying
-and hiding**, off by default.
-
-**Somebody has to produce that token first, and it will not be the person
-installing the bundle.** It is developer work: a Meta app, an app secret, and a
-token chain — redone every 60 days, unless you use a [System User
-token](../docs/system-user-token.md), which does not expire. The full walkthrough is
-**[docs/setup-tokens-permissions.md](../docs/setup-tokens-permissions.md)**; the
-short version is under [Getting a token](#getting-a-token).
+Send that file to marketers, or attach it on the
+[Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
+page so they can download it in a browser — no git on their side.
 
 **`mcpb:verify` is not a formality.** This project has already shipped an entry
-point that exited 0 having started nothing, because a guard comparing
-`import.meta.url` to `process.argv[1]` was false under a symlinked launch.
-Twelve reviews read that line; what caught it was launching the installed
-artifact. `mcpb:verify` unzips the real bundle, launches the entry point by the
-exact path `mcp_config` names, and speaks MCP to it — with writes off and on,
-checking the right tools register each way. Packing is not evidence.
+point that exited 0 having started nothing. `mcpb:verify` unzips the real
+bundle, launches the entry point `mcp_config` names, and speaks MCP to it.
 
-**Both of those were unverified when this shipped; both were checked on
-2026-09-08 by installing the bundle:**
-
-- **A `sensitive` value is encrypted at rest.** It lands in `~/Library/Application
-  Support/Claude/Claude Extensions Settings/<extension-id>.json`, mode `0600`,
-  stored as `"__encrypted__:…"` — the raw token does not appear in the file. No
-  keychain entry is created, so this is not `safeStorage`; where the key lives is
-  a further question, but the token is not sitting in a readable file.
-- **A `boolean` reaches the server correctly.** Writes off registers one tool;
-  writes on registers three.
-
-**What the install does show your user**, and it is worth warning them about:
-a red banner reading *"Installing will grant this extension access to everything
-on your computer. Any developer information shown has not been verified by
-Anthropic."* That is true of every unsigned local extension. It is not
-Gatekeeper, but it is the same moment of doubt, and someone non-technical will
-stop there unless you have told them it is coming.
-
-**A detail worth knowing:** Claude Desktop groups the tools by the annotations
-the server declares — *Read-only tools* and *Write/delete tools*, each defaulting
-to "Needs approval". The `readOnlyHint` and `destructiveHint` annotations are
-load-bearing UI here, not documentation.
-
-**The ad path this bundle exists to deliver has now run against a real ad**
-(2026-09-08). A paused campaign and ad were built on a real ad account against
-an unpublished photo post, and `comment_activity` with an `ad` target resolved
-it end to end: ad → creative → `effective_object_story_id` → dark post → Page
-token → the comments edge. A comment written by someone other than the Page was
-then triaged as needing a reply, through the installed bundle rather than a
-script. Replying and hiding were verified separately the same day.
-
-### From source
-
-Requires Node 22 or later.
-
-This package is **deliberately not published to npm**, and that is a decision
-rather than a pending task: the audience is marketers, who double-click a
-`.mcpb` rather than run `npx`. Publishing would buy a second release channel and
-a second support surface, spent on people who are not the user. The name is
-unregistered and the package stays publish-ready, so the option is held rather
-than destroyed.
-
-**Most people should install the bundle above, not this.** Installing from
-source is for developing on the server or running it under a client other than
-Claude Desktop.
-
-After [getting the repository](#get-the-repository-both-routes) (full or
-sparse):
-
-```bash
-cd node
-npm install
-```
-
-`npm install` builds the server as part of its `prepare` step, leaving a
-runnable entry point at `<checkout>/node/dist/index.js`. Take note of that
-absolute path — the client configuration below needs it. After editing anything
-under `src/`, rebuild with `npm run build`.
-
-Do **not** run `npm install` at the repository root — there is no root
-`package.json`. The Node package is only under `node/`. Likewise,
-`npm install github:grasshopperpebbles/facebook-engagement-mcp` does **not**
-work today: npm expects `package.json` at the repo root, and this monorepo
-keeps it in `node/`.
-
-Once the package is published to npm, none of that is needed and it runs the way
-any `npx`-launched MCP server does:
+Once published to npm (not yet):
 
 ```bash
 npx facebook-engagement-mcp

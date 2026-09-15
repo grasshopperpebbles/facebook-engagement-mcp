@@ -10,19 +10,17 @@ itself: **[Get your Meta access token](../docs/get-your-token.md)**.
 
 ## Install and run
 
-**From PyPI** (no git clone):
+**From PyPI** (no git clone — preferred if you only need to run it):
 
 ```bash
 pip install facebook-engagement-mcp        # or: uv pip install facebook-engagement-mcp
 META_ACCESS_TOKEN=EAA… facebook-engagement-mcp
 ```
 
-**From this monorepo** (if you want the git tree): clone
-`https://github.com/grasshopperpebbles/facebook-engagement-mcp.git`, or
-sparse-checkout only `python` + `docs` — see
-[Node → Get the repository](../node/README.md#get-the-repository-both-routes)
-(same commands, set `python docs` instead of `node docs`). Then install from
-`python/` with your usual tooling (`pip install -e .` / `uv sync`).
+**From this monorepo** (developers only): clone or sparse-checkout `python` +
+`docs` — see
+[From source — developers only](../node/README.md#from-source--developers-only).
+Then install from `python/` (`pip install -e .` / `uv sync`).
 
 It speaks MCP over stdio. To use it from a client, point that client's config at
 the `facebook-engagement-mcp` command with `META_ACCESS_TOKEN` in its
@@ -30,8 +28,8 @@ environment.
 
 **There is no double-clickable installer for this build, deliberately.** The
 `.mcpb` bundle is Node-only because Claude Desktop ships a Node runtime — that is
-the entire reason it can install without a prerequisite. Python installs the way
-Python installs.
+the entire reason marketers can install without git or a terminal. Python
+installs the way Python installs.
 
 ## What this build does
 

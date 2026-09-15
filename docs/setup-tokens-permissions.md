@@ -954,21 +954,20 @@ this next:
    Access Token** — not the Page token you used to test comments. The server
    field is `META_ACCESS_TOKEN`; it exchanges the user token for Page tokens
    itself.
-2. **Get the server onto your machine.** Clone
-   `https://github.com/grasshopperpebbles/facebook-engagement-mcp.git` (or
-   sparse-checkout `node` + `docs` — see
-   [Get the repository](../node/README.md#get-the-repository-both-routes)).
-   Prefer the Node `.mcpb` bundle: `cd node && npm install && npm run mcpb:pack`,
-   then double-click `node/build/facebook-engagement-mcp-<version>.mcpb` in
-   Claude Desktop. Full steps:
-   **[Install and configure](../node/README.md#install-and-configure)**.
-   Other languages: [repository README](../README.md#pick-your-language).
-3. **Paste that long-lived user token** into **Meta access token** on the
-   install form (or your client's env / config). Leave writes off until you
-   intend to reply or hide.
-4. **Ask the model to triage comments** on your Page (unanswered threads, a
+2. **Install the Claude Desktop extension (no git).** Download
+   `facebook-engagement-mcp-<version>.mcpb` from
+   [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
+   (or get the file from whoever maintains the server), double-click it, and
+   paste the long-lived **user** token into **Meta access token**. Leave writes
+   off until you intend to reply or hide. Full steps:
+   **[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--marketers-start-here)**.
+3. **Ask the model to triage comments** on your Page (unanswered threads, a
    specific post, or orientation with no target to list what the token can
    reach).
+
+Developers who need source, Claude Code, or Cursor: see
+[From source — developers only](../node/README.md#from-source--developers-only)
+(that path uses git; marketers do not).
 
 Still useful after that:
 

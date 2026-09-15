@@ -113,22 +113,21 @@ You are done with Meta console work when:
 - `me/accounts` lists your Page
 - A comments call works in the Explorer on the **Page** token (smoke test only)
 
-**Next step:**
+**Next step (marketers — no git):**
 
-1. Clone
-   `https://github.com/grasshopperpebbles/facebook-engagement-mcp.git`
-   (optional: sparse-checkout only `node` + `docs` — see
-   [Get the repository](../node/README.md#get-the-repository-both-routes)).
-2. Follow
-   [Install and configure](../node/README.md#install-and-configure)
-   — for the `.mcpb` path: `cd node && npm install && npm run mcpb:pack`, then
-   double-click `node/build/facebook-engagement-mcp-<version>.mcpb`.
-3. Paste the **long-lived user token** into **Meta access token**. Leave writes
-   off until you need them.
+1. Download `facebook-engagement-mcp-<version>.mcpb` from
+   [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
+   (or get the file from whoever maintains the server).
+2. Double-click it in Claude Desktop and paste the **long-lived user token**
+   into **Meta access token**. Leave writes off until you need them.
+3. Ask Claude about comments on your Page.
 
-Then ask Claude about comments on your Page (for example: triage unanswered
-comments on the Page). If ads matter, read [dark posts](dark-posts.md) before
-assuming a Page sweep is complete.
+Details:
+[Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--marketers-start-here).
+Developers who need source: [From source](../node/README.md#from-source--developers-only).
+
+If ads matter, read [dark posts](dark-posts.md) before assuming a Page sweep is
+complete.
 
 ## If something does not work
 
