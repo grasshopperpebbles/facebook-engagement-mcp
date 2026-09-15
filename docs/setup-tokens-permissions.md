@@ -256,15 +256,35 @@ Check, in order:
    2. **User or Page → Get User Access Token** again.
    3. Select the permissions you need (the four Page scopes, plus `ads_read` if
       you want ads).
-   4. On the consent screen, choose **Opt in to current Pages only** so Facebook
-      shows the checklist, and **tick every Page you need** — including the one
-      you are testing on. Confirm.
-   5. Retry `me/accounts?fields=id,name,tasks`.
+   4. On the consent screen, **do not click Continue / Continue with your
+      previous settings.** That button replays the *last* grant. If that grant
+      had zero Pages — or omitted the Page you just care about — you get a
+      valid token and `data: []` again, with nothing to tell you the dialog
+      skipped the checklist. Click **Edit settings** (wording varies; anything
+      that is not the fast Continue).
+   5. Choose **Opt in to current Pages only** so Facebook shows the checklist,
+      and **tick every Page you need** — including the one you are testing on.
+      Confirm.
+   6. Retry `me/accounts?fields=id,name,tasks`.
 
-3. **Only then treat it as ownership.** If the grant is fresh, `pages_show_list`
-   is present, and the list is still empty (or still missing the Page you
-   administer in the UI), the problem is Business Portfolio / role / how the
-   Page was created — not the Explorer click path. See the cases below.
+3. **Cross-check the Explorer's own Page list.** Open **User or Page** again.
+   Under **Page Access Tokens**, do any Pages appear (for example the Page you
+   administer)? If a Page is listed there but `/me/accounts` is still empty,
+   select that Page to mint a Page token and keep going for comment reads —
+   enumeration and "can I get a Page token" are not always the same question.
+   If **no** Pages appear under **Page Access Tokens** either, the grant really
+   has nothing; stay on Edit settings until the checklist shows Pages and you
+   have ticked them.
+
+4. **Only then treat it as ownership / portfolio.** If the grant is fresh
+   (`Edit settings`, Pages ticked), `pages_show_list` is present, **Page Access
+   Tokens** is empty, and `/me/accounts` is still `data: []`, the problem is
+   Business Portfolio / role / how the Page was created — not the Explorer
+   click path. Common pattern: you administer the Page in the UI, but the app
+   is not in the business portfolio that owns the Page, so enumeration returns
+   nothing. Try `GET /{page-id}?fields=id,name` with the same user token if you
+   know the Page id — access by id can succeed when the list is empty. See the
+   cases below.
 
 Once the call succeeds *with Pages in `data`*, interpret the list. Business
 Portfolio structure, Page ownership, and how a Page was created all affect what
@@ -688,7 +708,8 @@ The setup above is the resolution to a series of things that went wrong first:
   Generate a user token and retry; this is not a missing-Page problem.
 - **`/me/accounts` returning `{"data": []}`** means the user token worked but
   the app has zero Pages on its grant. Uninstall the app, **Get User Access
-  Token** again, opt in to current Pages, and tick the Pages you need. Do not
+  Token** again, click **Edit settings** (never **Continue with previous
+  settings**), opt in to current Pages, and tick the Pages you need. Do not
   confuse this with the comments empty-array (that one is using a user token
   where a Page token is required).
 - Selecting a **use case is not granting a permission**, and a token minted
