@@ -149,16 +149,37 @@ minted before the Marketing use case existed still lacks `ads_read`, even when
 the dashboard shows the permission as Ready for testing. That is the same trap
 as at the top of this section.
 
-To put `ads_read` on a token:
+To put those scopes on a token, remint a **user** access token. `ads_read` is a
+user-token scope — the Marketing API does not use Page tokens for
+`/me/adaccounts`, campaigns, or resolving an ad to its post. Do not pick a Page
+under **Page Access Tokens** for this step.
+
+Walked in the Explorer:
 
 1. Open **Tools → Graph API Explorer**.
-2. Select your app.
-3. Under **User or Page**, stay on your **user** (not a Page) — `ads_read` is a
-   user-token scope; the Marketing API does not use Page tokens for this.
-4. Ensure `ads_read` is among the permissions you request, then click
-   **Generate Access Token** and complete the consent dialog.
-5. Confirm with `debug_token` (Step 4 below) that `ads_read` appears in
-   `scopes`.
+2. Select your app in the app dropdown.
+3. Open the **User or Page** dropdown. Choose **Get User Access Token** — not
+   **Get App Token**, not **Uninstall the app**, and not a Page name under
+   **Page Access Tokens**. That menu item is what opens the permission picker
+   for a user token; merely having "User Token" shown in the closed dropdown
+   is not enough if the Access Token field is empty or stale.
+4. In the permissions dialog, select **all five** you need for comment triage
+   plus ads — not `ads_read` alone. Ticking only the new scope replaces the
+   previous grant with a narrower one, and you lose the Page scopes you already
+   walked:
+
+   | Permission | Why it is on this token |
+   |---|---|
+   | `pages_show_list` | `/me/accounts` — which Pages exist |
+   | `pages_read_engagement` | Page content and metadata |
+   | `pages_read_user_content` | Comments written by other people |
+   | `pages_manage_engagement` | Reply / hide (omit only if you will never write) |
+   | `ads_read` | Ad accounts, campaigns, ad → post |
+
+5. Complete the consent dialog (Pages and, if asked, ad accounts).
+6. Confirm with `debug_token` (Step 4 below) that **all five** appear in
+   `scopes`. Missing any one of them is the same class of failure as missing
+   `ads_read`.
 
 **You can skip this whole subsection.** Page comment reads do not need
 `ads_read`. Everything else in this article still works without it. What fails
@@ -168,8 +189,8 @@ a deliberate security choice: it is the **user** token that talks to your ad
 account (`/me/adaccounts`, campaigns, creatives). A user token without
 `ads_read` cannot read that account. The Page token is not involved in that
 check — it never reads the ad account; it only reads comments once you already
-have a post id. If the user token will only ever drive Page sweeps, that
-smaller blast radius is a fair reason to omit `ads_read`.
+have a post id. If the user token will only ever drive Page sweeps, remint with
+the four Page permissions and omit `ads_read`.
 
 ## Step 2: Confirm the Page is actually reachable
 
@@ -634,9 +655,9 @@ The setup above is the resolution to a series of things that went wrong first:
   Generate a user token and retry; this is not a missing-Page problem.
 - Selecting a **use case is not granting a permission**, and a token minted
   before you added a permission does not carry it. Verify with `debug_token`.
-  For ads: the Marketing use case already lists `ads_read` — you still must
-  re-mint a **user** token that requests it. Skip `ads_read` if you only
-  sweep Pages.
+  For ads: open **User or Page → Get User Access Token** and select **all five**
+  scopes (the four Page permissions plus `ads_read`) — not `ads_read` alone.
+  Skip `ads_read` if you only sweep Pages.
 - **You cannot name the app after the platform.** `Facebook`, `Meta` and their
   near-variants are rejected. Name it for the job it does — the name is also
   something App Review weighs later.
