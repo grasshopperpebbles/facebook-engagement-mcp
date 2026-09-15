@@ -604,7 +604,10 @@ describe("runCommentActivity", () => {
       const activity = result as { statusBasis: string; notes: string[] }
 
       expect(activity.statusBasis).toBe("author_identity")
-      expect(activity.notes.join(" ")).toContain("carried no author information")
+      // Counted on the LAST WORD since T-39: the note qualifies "who spoke
+      // last", which is the only thing triage read. `pg1_p1_c2` has no author
+      // and no replies, so it is its own last word.
+      expect(activity.notes.join(" ")).toContain("end with a comment carrying no author")
     },
   )
 })

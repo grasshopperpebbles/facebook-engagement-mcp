@@ -25,6 +25,7 @@ import {
   assembleThreads,
   commentTime,
   inTimeOrder,
+  lastWord,
   type Thread,
   type ThreadPost,
   threadPost,
@@ -580,7 +581,21 @@ export async function runCommentActivity(
     partial = true
     notes.push(`${filtered.length} threads matched; the ${capped.length} most recent are shown.`)
   }
-  if (basis === "reply_count") {
+  if (basis === "reply_count" && pageId !== undefined) {
+    // T-39, and it is the opposite note from the one that used to stand here.
+    // Graph returns `from` for a comment written by a Page and withholds it for
+    // one written by a person (T-38, confirmed live 2026-09-15). So the Page's
+    // own comments are the only dependable author ids in a batch, and a batch
+    // with none means the Page has replied to nothing in it. Every thread is
+    // therefore listed as needing a reply, and that is the accurate answer
+    // rather than a cautious one.
+    notes.push(
+      "No comment in this batch carried an author, which means the Page has not replied to " +
+        "anything here: Facebook returns author information for comments written by a Page and " +
+        "withholds it for comments written by a person. Every thread is listed as needing a " +
+        "reply. Which person wrote which comment cannot be reported.",
+    )
+  } else if (basis === "reply_count") {
     notes.push(
       "Comment authors were not returned by Graph, so 'needs reply' means nobody replied at " +
         "all, not that the Page has not replied.",
@@ -593,13 +608,21 @@ export async function runCommentActivity(
   // Page-authored reply, comes out `needs_reply` — safe in that it
   // over-surfaces rather than hides a waiting customer, but the batch-wide
   // confidence claim does not hold for it. Say so.
-  const withoutAuthors = capped.filter(
-    (t) => t.comment.author?.id === undefined && t.replies.every((r) => r.author?.id === undefined),
-  ).length
+  // Counted on the LAST WORD, because that is what triage actually read.
+  //
+  // This used to require the comment AND every reply to lack an author, which
+  // made it silent on the commonest real shape once T-38 was understood: a
+  // person's comment answered by a Page carries one author and no note, and a
+  // person's comment at the END of a thread — the thread that is waiting — was
+  // not counted either, because some Page earlier in it had an id. The question
+  // the note exists to qualify is "who spoke last", so that is what it counts.
+  const withoutAuthors = capped.filter((t) => lastWord(t).author?.id === undefined).length
   if (basis === "author_identity" && withoutAuthors > 0) {
     notes.push(
-      `${withoutAuthors} of these threads carried no author information, so they are listed as ` +
-        "needing a reply because it could not be confirmed the Page had replied.",
+      `${withoutAuthors} of these threads end with a comment carrying no author, so they are ` +
+        "listed as needing a reply because the last word was not the Page's. Facebook withholds " +
+        "author information for comments written by a person, so this is the ordinary case for a " +
+        "customer waiting on you, not a fault.",
     )
   }
 

@@ -58,6 +58,34 @@ export function triageThreads(
       }
     }
 
+    // `reply_count` WITH a known Page: nobody is answered (T-39).
+    //
+    // This branch used to read `replies.length > 0 ? "answered" : "needs_reply"`
+    // — "somebody replied, so it is handled" — and that inverts the product's
+    // answer once T-38 is taken seriously. Graph withholds `from` for a comment
+    // written by a PERSON and returns it for one written by a PAGE (confirmed
+    // live 2026-09-15 across three people and three Pages, including a person
+    // with no role on the Page and no connection to the app). The Page's own
+    // comments are therefore the only reliable source of an author id in a
+    // batch — so a batch with NO authored comment is a batch in which the Page
+    // has not replied to anything.
+    //
+    // Which makes `needs_reply` here the accurate answer rather than a cautious
+    // one: person asks, another person answers, and the Page has still never
+    // spoken. The old reading reported that as handled, and it did so exactly
+    // when the Page was behind on everything — the situation this tool exists
+    // for.
+    //
+    // The residual assumption is named on purpose: this leans on the Page
+    // always carrying `from`. That is 3-for-3 observed and structurally likely,
+    // being the token's own identity, but it is still a claim about someone
+    // else's system. If it ever fails, this mislabels an answered thread as
+    // needing a reply — the harmless direction, and the one activity.ts's
+    // invariant asks for.
+    if (pageId !== undefined) return { ...thread, status: "needs_reply" }
+
+    // No Page id at all: nothing here can identify anyone, and "somebody
+    // replied" is the only question the data supports. Unchanged.
     return { ...thread, status: thread.replies.length > 0 ? "answered" : "needs_reply" }
   })
 

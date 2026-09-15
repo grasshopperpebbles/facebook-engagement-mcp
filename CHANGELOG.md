@@ -2,6 +2,32 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.9] — 2026-09-15
+
+### Fixed
+
+- **A thread is no longer reported as answered when nobody is identified.**
+  Facebook returns author information for a comment written by a **Page** and
+  withholds it for one written by a **person** — confirmed against live Graph
+  across three Pages and three people, including a person with no role on the
+  Page and no connection to the app. That makes a Page's own comments the only
+  dependable source of an author id, so a batch carrying no author at all is a
+  batch in which the Page has replied to nothing. The fallback used to read
+  "somebody replied, so it is handled": a person asked, another person answered,
+  and the thread came back `answered` while the Page had never spoken — and it
+  did that precisely when the Page was behind on everything, which is what this
+  tool is for. Every thread in such a batch is now listed as needing a reply,
+  with a note saying why and warning that which person wrote which comment
+  cannot be reported. A single Page-authored comment restores identity triage,
+  and `answered` with it.
+
+  The ordinary case is unaffected and was never wrong: `answered` only ever
+  needs to identify the Page, and the Page always carries its own author id.
+
+- The note reporting threads without author information now counts a thread's
+  **last word** rather than requiring every comment in it to be anonymous, which
+  is what triage actually reads. It was silent on the commonest real shape.
+
 ## [0.1.8] — 2026-09-14
 
 ### Fixed

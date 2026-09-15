@@ -763,16 +763,29 @@ something not fully tested.
    unit-tested, not proven. Fixture *values* are synthetic throughout; only the
    *shapes* have been matched against live responses. See `fixtures/README.md`.
 
-3. **A comment's author is returned, but Meta does not document it.** In
-   practice `from: { name, id }` comes back — confirmed repeatedly, including
-   for third-party authors — so `statusBasis` is `"author_identity"` and
-   `needs_reply` answers the question you actually want: *has the Page replied
-   to this?* But `from` is not listed among the Comment node's documented
-   fields, so it could stop arriving without notice. The server therefore keeps
-   a degraded path: with no author it can only tell that *someone* replied, and
-   `needs_reply` weakens to *has anyone replied at all?* **That path has never
-   fired.** Every response reports which basis it used, as `statusBasis`:
-   `"author_identity"` or `"reply_count"`. Check it before trusting the answer.
+3. **Facebook tells you who a Page is and will not tell you who a person is.**
+   A comment written by a **Page** comes back with `from: { name, id }`. A
+   comment written by a **person** comes back with no `from` at all — confirmed
+   against live Graph on 2026-09-15 across three Pages and three people,
+   including a person with no role on the Page and no connection to the app.
+   None of this is documented; `from` is not listed among the Comment node's
+   fields.
+
+   **`needs_reply` still answers the question you want**, because it only ever
+   has to recognise *the Page*, and the Page always carries its own author id.
+   A customer's comment has no author, so it is not the Page, so the thread is
+   listed as needing a reply. That is correct, and it errs towards showing you a
+   thread rather than hiding one.
+
+   **What you cannot get is who.** Author names are absent for real customers,
+   so `groupBy: "author"` is close to useless on human comments, and a response
+   cannot tell you which person is waiting — only that somebody is.
+
+   **The one case to know about:** when *no* comment in a batch carries an
+   author, the Page has replied to nothing in it, and every thread is listed as
+   needing a reply with a note saying so. Prior to 0.1.9 that case reported the
+   threads as `answered`. Every response still reports `statusBasis`,
+   `"author_identity"` or `"reply_count"`; check it before trusting the detail.
 
 4. **Your own Pages work in development mode; other people's need App Review.**
    The permissions in the table above have been exercised live against a real

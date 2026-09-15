@@ -139,8 +139,65 @@ describe("triageThreads with author identity", () => {
 })
 
 describe("triageThreads without author identity", () => {
-  it("treats any reply as answered and says the basis was reply count", () => {
+  it("refuses to call anything answered when the Page id is known (T-39)", () => {
+    // This asserted `answered` until 2026-09-15, and that was the defect.
+    // Graph returns `from` for a comment written by a Page and withholds it for
+    // one written by a person (T-38), so the Page's own comments are the only
+    // dependable author ids in a batch — and a batch with none is a batch where
+    // the Page has replied to nothing. Person asks, person answers, Page has
+    // still never spoken. `needs_reply` is the accurate answer here, not the
+    // cautious one.
     const { threads, basis } = triageThreads([thread({ id: "c1" }, [{ id: "r1" }])], "pg1")
+
+    expect(basis).toBe("reply_count")
+    expect(threads[0]!.status).toBe("needs_reply")
+  })
+
+  it("does not report a waiting customer as handled when only people spoke (T-39)", () => {
+    // The shape this fix exists for, written the way it actually arrives: two
+    // people talking to each other under a Page post, the Page absent. Neither
+    // comment carries an author, because neither was written by a Page. Before
+    // T-39 this came back `answered` — T-11's inversion by a third route, and
+    // it arrived exactly when the Page was behind on everything, which is the
+    // case the tool exists for.
+    const { threads } = triageThreads(
+      [
+        thread({ id: "c1", createdTime: "2026-09-15T00:00:00+0000" }, [
+          { id: "r1", createdTime: "2026-09-15T01:00:00+0000" },
+          { id: "r2", createdTime: "2026-09-15T02:00:00+0000" },
+        ]),
+      ],
+      "pg1",
+    )
+
+    expect(threads[0]!.status).toBe("needs_reply")
+  })
+
+  it("keeps identity triage as soon as ONE Page comment is present", () => {
+    // The boundary. A single Page-authored comment anywhere in the batch is
+    // enough to restore `author_identity`, and then the ordinary rule applies
+    // per thread — including calling a thread answered when the Page really did
+    // have the last word. T-39 must not have made `answered` unreachable.
+    const { basis, threads } = triageThreads(
+      [
+        thread({ id: "c1", createdTime: "2026-09-15T00:00:00+0000" }, [
+          { id: "r1", author: { id: "pg1" }, createdTime: "2026-09-15T01:00:00+0000" },
+        ]),
+        thread({ id: "c2", createdTime: "2026-09-15T00:00:00+0000" }, [
+          { id: "r2", createdTime: "2026-09-15T01:00:00+0000" },
+        ]),
+      ],
+      "pg1",
+    )
+
+    expect(basis).toBe("author_identity")
+    expect(threads.map((t) => t.status)).toEqual(["answered", "needs_reply"])
+  })
+
+  it("still answers 'somebody replied' when there is no Page id at all", () => {
+    // Nothing can identify anyone here, so "did anyone reply" is the only
+    // question the data supports. Unchanged by T-39.
+    const { threads, basis } = triageThreads([thread({ id: "c1" }, [{ id: "r1" }])], undefined)
 
     expect(basis).toBe("reply_count")
     expect(threads[0]!.status).toBe("answered")
