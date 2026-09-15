@@ -97,6 +97,7 @@ needs:
 | Permission | What it gets you |
 |---|---|
 | `pages_show_list` | Which Pages the identity manages — **without this nothing works**, because every Page token comes from `/me/accounts` |
+| `business_management` | Without this, `/me/accounts` often returns `[]` for Pages under a Business Portfolio — see [setup](setup-tokens-permissions.md#and-business_management--or-meaccounts-stays-empty) |
 | `pages_read_user_content` | Reading the comments |
 | `pages_manage_engagement` | Replying and hiding. Skip it and reads work perfectly while every write is refused |
 | `ads_read` | Comments on your ads — see [why](dark-posts.md) |

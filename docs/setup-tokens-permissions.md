@@ -1,7 +1,7 @@
 ---
 title: "Reading Facebook Page Comments with the Graph API: App Setup, Tokens, and Permissions"
 date: 2026-09-02
-verified: "Steps 1-5 walked against a live Page, 2026-09-03. The ads_read additions of 2026-09-07 are NOT verified live — no ad has been resolved yet."
+verified: "Steps 1-5 walked against a live Page, 2026-09-03. ads_read path partially documented 2026-09-07. business_management required for /me/accounts to return Pages under Business Portfolio — verified in Graph API Explorer 2026-09-15."
 ---
 
 <!-- Source of truth for this article is the broadkast content repo,
@@ -117,6 +117,22 @@ Note the dependency: Meta's reference lists `pages_manage_engagement` as
 requiring `pages_read_user_content` and `pages_show_list`. You cannot cherry-pick
 the write permission and skip the read one.
 
+### And `business_management` — or `/me/accounts` stays empty
+
+Walked in Graph API Explorer, 2026-09-15: with the four Page permissions on a
+fresh **user** token, consent completed via **Edit settings**, and Pages ticked,
+`GET /me/accounts` still returned `{"data": []}`. Adding **`business_management`**
+to the same token made the Pages appear.
+
+So `pages_show_list` is necessary and **not sufficient** when your Pages live
+under a Business Portfolio / Business Manager. Without `business_management`,
+Graph accepts the call and answers with an empty list — the same shape as a
+missing Page grant, which is why the re-authorise loop alone does not fix it.
+
+Add it in the Explorer permission picker when you **Get User Access Token**. It
+is a user-token scope. Confirm it in `debug_token`'s `scopes` array alongside
+the four Page permissions.
+
 ### And a fifth for ads — which is not on that page at all
 
 `ads_read` is the permission that lets you resolve an ad to the post behind it,
@@ -163,10 +179,9 @@ Walked in the Explorer:
    **Page Access Tokens**. That menu item is what opens the permission picker
    for a user token; merely having "User Token" shown in the closed dropdown
    is not enough if the Access Token field is empty or stale.
-4. In the permissions dialog, select **all five** you need for comment triage
-   plus ads — not `ads_read` alone. Ticking only the new scope replaces the
-   previous grant with a narrower one, and you lose the Page scopes you already
-   walked:
+4. In the permissions dialog, select **every scope you need** — not `ads_read`
+   alone. Ticking only the new scope replaces the previous grant with a
+   narrower one, and you lose the Page scopes you already walked:
 
    | Permission | Why it is on this token |
    |---|---|
@@ -174,14 +189,15 @@ Walked in the Explorer:
    | `pages_read_engagement` | Page content and metadata |
    | `pages_read_user_content` | Comments written by other people |
    | `pages_manage_engagement` | Reply / hide (omit only if you will never write) |
-   | `ads_read` | Ad accounts, campaigns, ad → post |
+   | `business_management` | Required for `/me/accounts` to return Pages under a Business Portfolio — without it the list is often `[]` |
+   | `ads_read` | Ad accounts, campaigns, ad → post (omit if you only sweep Pages) |
 
-5. Complete the consent dialog (Pages and, if asked, ad accounts).
-6. Confirm with `debug_token` (Step 4 below) that **all five** appear in
-   `scopes`. Missing any one of them is the same class of failure as missing
-   `ads_read`.
+5. Complete the consent dialog (Pages and, if asked, ad accounts / businesses).
+6. Confirm with `debug_token` (Step 4 below) that those scopes appear in
+   `scopes`. Missing `business_management` with an empty `/me/accounts` is the
+   same class of failure as missing `pages_show_list`.
 
-**You can skip this whole subsection.** Page comment reads do not need
+**You can skip the ads half of this subsection.** Page comment reads do not need
 `ads_read`. Everything else in this article still works without it. What fails
 is only the ad path — resolving an ad to the unpublished post behind it, as
 covered in the companion article on dark posts. Leaving `ads_read` off is also
@@ -190,7 +206,7 @@ account (`/me/adaccounts`, campaigns, creatives). A user token without
 `ads_read` cannot read that account. The Page token is not involved in that
 check — it never reads the ad account; it only reads comments once you already
 have a post id. If the user token will only ever drive Page sweeps, remint with
-the four Page permissions and omit `ads_read`.
+the four Page permissions plus `business_management`, and omit `ads_read`.
 
 ## Step 2: Confirm the Page is actually reachable
 
@@ -242,20 +258,21 @@ for that identity.
 
 Check, in order:
 
-1. **Confirm it is a user token and it carries `pages_show_list`.** In the
-   Explorer, **User or Page** must be a user token from **Get User Access
-   Token**, not a Page under **Page Access Tokens**. Then run `debug_token`
-   (Step 4). If `pages_show_list` is missing from `scopes`, remint and tick it
-   — without it you will not get a useful Page list.
+1. **Confirm it is a user token and it carries `pages_show_list` and
+   `business_management`.** In the Explorer, **User or Page** must be a user
+   token from **Get User Access Token**, not a Page under **Page Access
+   Tokens**. Then run `debug_token` (Step 4). If either scope is missing from
+   `scopes`, remint and tick it. Verified 2026-09-15: the four Page permissions
+   alone still returned `{"data": []}` until `business_management` was added.
 2. **Re-authorise so the Page grant is not empty.** Permissions on the token
-   and Pages the app may touch are separate. You can hold all five scopes and
-   still see `data: []` if consent never attached any Page (or the grant went
-   stale). Fix:
+   and Pages the app may touch are separate. You can hold the Page scopes (and
+   even `business_management`) and still see `data: []` if consent never
+   attached any Page (or the grant went stale). Fix:
 
    1. **User or Page → Uninstall the app.**
    2. **User or Page → Get User Access Token** again.
-   3. Select the permissions you need (the four Page scopes, plus `ads_read` if
-      you want ads).
+   3. Select the permissions you need (the four Page scopes,
+      `business_management`, plus `ads_read` if you want ads).
    4. On the consent screen, **do not click Continue / Continue with your
       previous settings.** That button replays the *last* grant. If that grant
       had zero Pages — or omitted the Page you just care about — you get a
@@ -277,14 +294,14 @@ Check, in order:
    have ticked them.
 
 4. **Only then treat it as ownership / portfolio.** If the grant is fresh
-   (`Edit settings`, Pages ticked), `pages_show_list` is present, **Page Access
-   Tokens** is empty, and `/me/accounts` is still `data: []`, the problem is
-   Business Portfolio / role / how the Page was created — not the Explorer
-   click path. Common pattern: you administer the Page in the UI, but the app
-   is not in the business portfolio that owns the Page, so enumeration returns
-   nothing. Try `GET /{page-id}?fields=id,name` with the same user token if you
-   know the Page id — access by id can succeed when the list is empty. See the
-   cases below.
+   (`Edit settings`, Pages ticked), `pages_show_list` and `business_management`
+   are both present, **Page Access Tokens** is empty, and `/me/accounts` is
+   still `data: []`, the problem is Business Portfolio / role / how the Page
+   was created — not the Explorer click path. Common pattern: you administer
+   the Page in the UI, but the app is not in the business portfolio that owns
+   the Page, so enumeration returns nothing. Try `GET /{page-id}?fields=id,name`
+   with the same user token if you know the Page id — access by id can succeed
+   when the list is empty. See the cases below.
 
 Once the call succeeds *with Pages in `data`*, interpret the list. Business
 Portfolio structure, Page ownership, and how a Page was created all affect what
@@ -304,8 +321,9 @@ curl -s -H "Authorization: Bearer $USER_TOKEN" \
   "https://graph.facebook.com/v25.0/me/accounts?fields=id,name,tasks"
 ```
 
-If your Page is not in that list, no amount of permission tuning will help. Fix
-the ownership or the role first.
+If your Page is not in that list after `pages_show_list` and
+`business_management` are both on the token, no amount of further permission
+tuning will help. Fix the ownership or the role first.
 
 ### The grant goes stale, and "all future Pages" does not mean what it says
 
@@ -379,7 +397,7 @@ app; you are looking at a different token.
 
 | Call | Token | What gates it |
 |---|---|---|
-| `/me/accounts` — which Pages exist | User | `pages_show_list` |
+| `/me/accounts` — which Pages exist | User | `pages_show_list` **and** `business_management` (without the latter, Business Portfolio Pages often yield `data: []`) |
 | `/me/adaccounts`, `/{account}/campaigns`, resolving an ad to its post | **User** | `ads_read` |
 | `/{post-id}/comments` — reading comments | **Page** | `pages_read_user_content` + the Page role |
 | Replying, hiding | **Page** | `pages_manage_engagement` + `MODERATE` on the Page |
@@ -490,11 +508,13 @@ because the token was minted before the permission was added.
 The `check-permissions.sh` script in [Reader downloads](#reader-downloads) does
 this and diffs the result against the four permissions above.
 
-**If you added `ads_read`, check for it here too.** It is the permission most
-likely to be missing without you noticing, because nothing about a Page sweep
-fails without it — you simply find, later and confusingly, that you cannot get
-at the comments on your ads. `check-permissions.sh` does not look for it; the
-`scopes` array in the `debug_token` response above does.
+**If you added `ads_read` or `business_management`, check for them here too.**
+`business_management` is the one that looks optional until `/me/accounts` returns
+`[]` with every Page permission present. `ads_read` is the permission most
+likely to be missing without you noticing on a Page-only sweep — you simply find,
+later and confusingly, that you cannot get at the comments on your ads.
+`check-permissions.sh` does not look for either; the `scopes` array in the
+`debug_token` response above does.
 
 If you would rather click than curl, the same answer is in **Tools → Access
 Token Debugger**, which lists the token's scopes and its expiry on one screen.
@@ -707,16 +727,17 @@ The setup above is the resolution to a series of things that went wrong first:
   **user** token — empty field, Page selected in User or Page, or expired.
   Generate a user token and retry; this is not a missing-Page problem.
 - **`/me/accounts` returning `{"data": []}`** means the user token worked but
-  the app has zero Pages on its grant. Uninstall the app, **Get User Access
-  Token** again, click **Edit settings** (never **Continue with previous
-  settings**), opt in to current Pages, and tick the Pages you need. Do not
-  confuse this with the comments empty-array (that one is using a user token
-  where a Page token is required).
+  Graph is not enumerating any Pages for this app. First confirm
+  `business_management` and `pages_show_list` are both in `scopes` (verified:
+  Page scopes alone were not enough). Then uninstall, **Get User Access
+  Token**, click **Edit settings** (never **Continue with previous settings**),
+  tick the Pages you need. Do not confuse this with the comments empty-array
+  (that one is using a user token where a Page token is required).
 - Selecting a **use case is not granting a permission**, and a token minted
   before you added a permission does not carry it. Verify with `debug_token`.
-  For ads: open **User or Page → Get User Access Token** and select **all five**
-  scopes (the four Page permissions plus `ads_read`) — not `ads_read` alone.
-  Skip `ads_read` if you only sweep Pages.
+  For ads: open **User or Page → Get User Access Token** and select the Page
+  scopes, `business_management`, and `ads_read` — not `ads_read` alone. Skip
+  `ads_read` if you only sweep Pages.
 - **You cannot name the app after the platform.** `Facebook`, `Meta` and their
   near-variants are rejected. Name it for the job it does — the name is also
   something App Review weighs later.
