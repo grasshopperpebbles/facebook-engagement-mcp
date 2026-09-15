@@ -235,7 +235,7 @@ Which inverts how most people would build this. Sweeping the Page is the
 obvious design and it silently misses every ad. Resolving the ad to its post is
 the awkward design and it is the only one that works.
 
-**That chain needs `ads_read`**, added in [Step 1](#step-1-create-the-app-then-grant-the-permission-separately).
+**That chain needs `ads_read`**, added in [Step 1](./setup-tokens-permissions.md#step-1-create-the-app-then-grant-the-permission-separately).
 It is a separate App Review item from the Page permissions, and a token without
 it fails at the very first hop — `/{ad-id}` — before any Page is involved.
 

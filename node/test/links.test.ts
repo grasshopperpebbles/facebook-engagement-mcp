@@ -46,10 +46,21 @@ function markdownFiles(dir: string): string[] {
 /**
  * Link targets that point at a path in this repository.
  *
- * Absolute URLs, mailto and pure `#anchor` links are somebody else's problem —
- * the first two cannot be checked offline and the third is within one document.
- * A trailing `#anchor` is stripped: the file has to exist, and whether the
- * heading does is not something a path check can answer honestly.
+ * Absolute URLs and mailto are somebody else's problem — they cannot be checked
+ * offline.
+ *
+ * **The anchor half used to be excluded too, and the reason given was wrong.**
+ * This comment said whether the heading exists "is not something a path check
+ * can answer honestly". It is: GitHub derives a heading's anchor by a published,
+ * deterministic rule, and computing it needs no network and no rendering. The
+ * exclusion cost four live broken anchors, found 2026-09-15 — three of them
+ * same-page `#` links this function did not return at all, so they were never
+ * even candidates. Two pointed at headings that had been reworded, one at a
+ * heading that had gained a suffix, and one at a section that lives in a
+ * different file entirely.
+ *
+ * That is the same failure the doc comment above describes, one level down: a
+ * check that declines to cover something, for a reason nobody re-examined.
  */
 function localTargets(markdown: string): string[] {
   return [...markdown.matchAll(/\]\(([^)\s]+)\)/g)]
@@ -57,6 +68,44 @@ function localTargets(markdown: string): string[] {
     .filter((target) => !/^(https?:|mailto:|#)/.test(target))
     .map((target) => target.split("#")[0] ?? "")
     .filter((target) => target.length > 0)
+}
+
+/** Every link target carrying a `#fragment`, including same-page `#` links. */
+function anchorTargets(markdown: string): string[] {
+  return [...markdown.matchAll(/\]\(([^)\s]+)\)/g)]
+    .map((match) => match[1] ?? "")
+    .filter((target) => !/^(https?:|mailto:)/.test(target))
+    .filter((target) => target.includes("#"))
+}
+
+/**
+ * The anchors GitHub generates for a Markdown file's headings.
+ *
+ * The rule: lowercase, drop everything that is not a word character, whitespace
+ * or hyphen, then replace each space with one hyphen. **Each space, not each
+ * run** — an em dash sits between two spaces, is dropped as punctuation, and
+ * leaves the double hyphen that `from-source--developers-only` carries. Getting
+ * that wrong reports a correct link as broken, which is how this check was
+ * first written and immediately disbelieved.
+ *
+ * A repeated heading gets `-1`, `-2` … appended, same as GitHub.
+ */
+function headingAnchors(markdown: string): Set<string> {
+  const seen = new Map<string, number>()
+  const anchors = new Set<string>()
+
+  for (const match of markdown.matchAll(/^#{1,6}\s+(.*?)\s*$/gm)) {
+    const base = (match[1] ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, "")
+      .replace(/ /g, "-")
+      .replace(/^-+|-+$/g, "")
+    const count = seen.get(base) ?? 0
+    seen.set(base, count + 1)
+    anchors.add(count === 0 ? base : `${base}-${count}`)
+  }
+  return anchors
 }
 
 const files = markdownFiles(repoRoot)
@@ -80,4 +129,43 @@ describe("relative links in Markdown", () => {
       expect(broken, `broken links in ${relative(repoRoot, file)}`).toEqual([])
     },
   )
+
+  it.each(files.map((file) => [relative(repoRoot, file), file]))(
+    "%s links only to headings that exist",
+    (_label, file) => {
+      const markdown = readFileSync(file, "utf8")
+      const broken: string[] = []
+
+      for (const target of anchorTargets(markdown)) {
+        const [path = "", fragment = ""] = target.split("#")
+        if (fragment.length === 0) continue
+
+        const resolved = path.length === 0 ? file : resolve(dirname(file), path)
+        // A missing FILE is the other test's finding, not this one's. Reporting
+        // it twice would make one fix look like two.
+        if (!existsSync(resolved) || !resolved.endsWith(".md")) continue
+
+        if (!headingAnchors(readFileSync(resolved, "utf8")).has(fragment)) broken.push(target)
+      }
+
+      expect(broken, `links to missing headings in ${relative(repoRoot, file)}`).toEqual([])
+    },
+  )
+
+  it("can tell a real anchor from an invented one", () => {
+    // The guard on the guard. An anchor check that accepted anything would pass
+    // every assertion above and mean nothing — which is this repository's
+    // recorded failure mode for link checks specifically: it once adopted an
+    // HTTP check that could not fail because the host answered 200 for every
+    // path, including deliberate nonsense.
+    const sample =
+      "# From source — developers only\n\n## Reader downloads (optional — developers)\n"
+    const anchors = headingAnchors(sample)
+
+    expect(anchors.has("from-source--developers-only")).toBe(true)
+    expect(anchors.has("reader-downloads-optional--developers")).toBe(true)
+    // The shape that was actually broken: a heading that has been reworded.
+    expect(anchors.has("reader-downloads")).toBe(false)
+    expect(anchors.has("from-source-developers-only")).toBe(false)
+  })
 })

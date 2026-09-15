@@ -175,7 +175,7 @@ alongside the four Page permissions.
 ### And a fifth for ads — which is not on that Pages use case at all
 
 `ads_read` is the permission that lets you resolve an ad to the post behind it,
-and it is the one the [Comments on ads](#comments-on-ads-where-the-documentation-is-wrong)
+and it is the one the [Comments on ads](#comments-on-ads-a-separate-article)
 section below depends on entirely. **You will not find it under Manage
 everything on your Page**, however far you scroll. It belongs to the Marketing
 API, a different product surface.
@@ -605,7 +605,7 @@ curl -s "https://graph.facebook.com/v25.0/debug_token\
 &access_token=$APP_ID|$APP_SECRET"
 ```
 
-The `check-permissions.sh` script in [Reader downloads](#reader-downloads) does
+The `check-permissions.sh` script in [Reader downloads](#reader-downloads-optional--developers) does
 this and diffs the result against the four Page permissions above. It does not
 look for `ads_read` or `business_management`; the Debugger (or the `scopes`
 array in the curl response) does.
@@ -773,7 +773,7 @@ by a person who administers the Page**. Confirmed 2026-09-15; it is partly
 detectable, and [the article says how](./dark-posts.md#the-second-reason-a-post-is-missing-the-token-you-are-using).
 
 It assumes the setup on this page, plus the `ads_read` scope from
-[Step 1](#and-a-fifth-for-ads--which-is-not-on-that-page-at-all).
+[Step 1](#and-a-fifth-for-ads--which-is-not-on-that-pages-use-case-at-all).
 
 
 ## The fields that work but aren't documented
