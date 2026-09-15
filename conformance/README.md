@@ -119,6 +119,33 @@ things fell out that no amount of reading would have produced.
   wire does not cover everything**, and where a diagnosis is the product, it has
   to be tested where the diagnosis is made.
 
+## In CI
+
+`.github/workflows/ci.yml` builds the Node package, installs the Python one,
+builds the Python image, and runs:
+
+```bash
+node conformance/run.mjs node python python-native
+```
+
+**Named explicitly, and that is the point.** The runner skips an implementation
+whose files are absent, which is right for a developer who does not have every
+toolchain installed and wrong in CI — a skipped entry there is a coverage hole
+that reports green. Naming an implementation asserts it must run, and a named
+one that is missing now **fails** instead of skipping.
+
+`gpp-mcp-page-engagement` is deliberately not named: it lives in a private
+sibling repository CI cannot check out, so it skips and says so on its own line
+rather than the run quietly testing three things and looking like four.
+
+**One thing here is not yet verified and is worth knowing.** The containerised
+entry reaches the stub at `host.docker.internal`, created on Linux by
+`--add-host=host.docker.internal:host-gateway`. That has been watched working on
+Docker Desktop; it has **not** been watched on a Linux CI runner. If it fails
+there, the failure is loud — a connection error on every case, never a silent
+pass — and the Linux fix is `--network host`, which lets the container reach the
+host's loopback directly.
+
 ## Adding a case
 
 1. Write the rule as one sentence, and the `why` as the incident it came from.

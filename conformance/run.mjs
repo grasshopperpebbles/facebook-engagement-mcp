@@ -184,8 +184,22 @@ for (const [name, implementation] of Object.entries(implementations)) {
   // A missing sibling checkout is a skip, not a failure — but it is SAID, so a
   // green run that silently tested one implementation cannot be mistaken for a
   // green run that tested both.
+  //
+  // **Unless it was asked for by name.** CI names the implementations it means
+  // to test, and an entry that vanishes for that run is a coverage hole, not a
+  // convenience: the suite would go green having tested less than it was told
+  // to, and nothing would say so where anyone looks. Naming it is the caller
+  // asserting it must run.
   const probe = implementation.existsCheck && resolve(REPO, implementation.existsCheck)
   if (probe && !existsSync(probe)) {
+    if (wanted.includes(name)) {
+      console.error(
+        `\n✗ ${name}: asked for by name but ${implementation.existsCheck} is not present. ` +
+          "Refusing to skip an implementation that was explicitly requested.",
+      )
+      failed += 1
+      continue
+    }
     console.log(`\n— ${name}: SKIPPED, ${implementation.existsCheck} not present`)
     continue
   }

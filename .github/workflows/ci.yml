@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node:
+    name: Node package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: node
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - run: npm ci
+      - name: Check (lint, typecheck, test)
+        run: npm run check
+      # The bundle is the product for this language, and packing is where this
+      # project's worst entrypoint bug lived — the source was fine and the
+      # packaged artefact started nothing. `mcpb:verify` unzips the real bundle
+      # and launches it, so the thing that ships is the thing that is tested.
+      - name: Pack and launch the .mcpb
+        run: npm run mcpb:pack && npm run mcpb:verify
+
+  python:
+    name: Python package
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run pytest -q
+
+  conformance:
+    name: Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: node/package-lock.json
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build the Node implementation
+        working-directory: node
+        run: npm ci && npm run build
+
+      - name: Install the Python implementation
+        working-directory: python
+        run: uv sync --frozen
+
+      - name: Build the Python image
+        run: docker build -t fbe-python:dev python/
+
+      # Named explicitly rather than run bare. `run.mjs` skips an implementation
+      # whose files are absent, which is right for a developer without every
+      # toolchain and wrong here: a skipped entry in CI is a coverage hole that
+      # reports green. Naming them makes an absent one a FAILURE.
+      #
+      # `gpp-mcp-page-engagement` is deliberately not named. It lives in a
+      # private sibling repository that CI cannot check out, so it skips — and
+      # the run says so on its own line rather than quietly testing three.
+      - name: Run the suite
+        run: node conformance/run.mjs node python python-native
