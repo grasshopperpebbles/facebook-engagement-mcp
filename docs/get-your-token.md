@@ -65,9 +65,20 @@ should stay in the Explorer.
 
 ## 4. Make it last
 
-The one-hour token has to be exchanged for a long-lived one, which lasts about
-60 days. The exchange is a single request and the full guide has it ready to
-paste: [the token chain](setup-tokens-permissions.md#step-3-the-token-chain).
+The one-hour token has to become a long-lived one (~60 days), and you need a
+**Page** token (not the user token) for comments.
+
+**In the browser:**
+
+1. Copy the user token from the Explorer.
+2. Open **Tools → Access Token Debugger**, paste it, **Debug**, then
+   **Extend Access Token** (you will need the app secret from App Dashboard →
+   App settings → Basic).
+3. Back in the Explorer, open **User or Page** and select your Page under
+   **Page Access Tokens**. That Page token is what the installer needs for
+   comment reads.
+
+Full detail: [the token chain](setup-tokens-permissions.md#get-a-long-lived-user-token-and-then-a-page-token-without-a-terminal).
 
 Skipping this step is the most common reason the tool works for an hour and
 then stops.

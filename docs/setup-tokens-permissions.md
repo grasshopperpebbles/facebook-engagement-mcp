@@ -1,7 +1,7 @@
 ---
 title: "Reading Facebook Page Comments with the Graph API: App Setup, Tokens, and Permissions"
 date: 2026-09-02
-verified: "Steps 1-5 walked against a live Page, 2026-09-03. ads_read path partially documented 2026-09-07. business_management required for /me/accounts to return Pages under Business Portfolio — verified in Graph API Explorer 2026-09-15."
+verified: "Steps 1-5 walked against a live Page, 2026-09-03. ads_read / business_management / Explorer-first non-developer walkthrough verified and updated 2026-09-15."
 ---
 
 <!-- Source of truth for this article is the broadkast content repo,
@@ -38,6 +38,13 @@ separately and the join between them nowhere.
 > the documentation does not mention — the app-name restriction in Step 1, the
 > stale grant in Step 2, and the answer to the `from` question further down.
 > Where the documentation is still ambiguous, I say so rather than guessing.
+>
+> **How to follow this page if you are not a developer.** You do not need a
+> terminal. Almost every check uses two browser tools under **Tools** in the
+> [Meta developer site](https://developers.facebook.com/) header:
+> **Graph API Explorer** (run queries, mint tokens) and **Access Token
+> Debugger** (see scopes and expiry). Where a `curl` block appears, it is
+> optional — the same step is described as clicks first.
 
 ## The short version
 
@@ -51,8 +58,10 @@ Four things have to line up, and each fails differently:
 ```
 
 If you only remember one thing: **comment reads through a user access token
-return an empty array, not an error.** You need a Page access token, and you get
-one by exchanging your user token through `/me/accounts`.
+return an empty array, not an error.** You need a Page access token. In Graph
+API Explorer you get one by opening **User or Page** and selecting your Page
+under **Page Access Tokens** (after a user token with the right scopes). The
+API equivalent is exchanging a user token through `/me/accounts`.
 
 ## Why comments are the hard case
 
@@ -130,8 +139,8 @@ Graph accepts the call and answers with an empty list — the same shape as a
 missing Page grant, which is why the re-authorise loop alone does not fix it.
 
 Add it in the Explorer permission picker when you **Get User Access Token**. It
-is a user-token scope. Confirm it in `debug_token`'s `scopes` array alongside
-the four Page permissions.
+is a user-token scope. Confirm it in **Tools → Access Token Debugger** (Step 4)
+alongside the four Page permissions.
 
 ### And a fifth for ads — which is not on that page at all
 
@@ -193,9 +202,9 @@ Walked in the Explorer:
    | `ads_read` | Ad accounts, campaigns, ad → post (omit if you only sweep Pages) |
 
 5. Complete the consent dialog (Pages and, if asked, ad accounts / businesses).
-6. Confirm with `debug_token` (Step 4 below) that those scopes appear in
-   `scopes`. Missing `business_management` with an empty `/me/accounts` is the
-   same class of failure as missing `pages_show_list`.
+6. Confirm in **Access Token Debugger** (Step 4) that those scopes appear.
+   Missing `business_management` with an empty `/me/accounts` is the same class
+   of failure as missing `pages_show_list`.
 
 **You can skip the ads half of this subsection.** Page comment reads do not need
 `ads_read`. Everything else in this article still works without it. What fails
@@ -237,9 +246,9 @@ Page, a stale grant, or a missing `pages_show_list` — those fail differently
 
 The usual causes in the Explorer, in the order to check them:
 
-1. **No token yet.** The Access Token field at the top is empty. Click
-   **Generate Access Token**, complete the login/consent dialog, then submit
-   the query again.
+1. **No token yet.** The Access Token field at the top is empty. Open
+   **User or Page → Get User Access Token**, complete the login/consent dialog,
+   then submit the query again.
 2. **A Page is selected under User or Page.** `/me/accounts` lists Pages
    managed by a *person*. A Page access token is not a user identity, so Meta
    treats the call as having no active token for the current user. Switch the
@@ -261,9 +270,10 @@ Check, in order:
 1. **Confirm it is a user token and it carries `pages_show_list` and
    `business_management`.** In the Explorer, **User or Page** must be a user
    token from **Get User Access Token**, not a Page under **Page Access
-   Tokens**. Then run `debug_token` (Step 4). If either scope is missing from
-   `scopes`, remint and tick it. Verified 2026-09-15: the four Page permissions
-   alone still returned `{"data": []}` until `business_management` was added.
+   Tokens**. Then open **Tools → Access Token Debugger**, paste the token, and
+   click **Debug**. If either scope is missing, remint and tick it. Verified
+   2026-09-15: the four Page permissions alone still returned `{"data": []}`
+   until `business_management` was added.
 2. **Re-authorise so the Page grant is not empty.** Permissions on the token
    and Pages the app may touch are separate. You can hold the Page scopes (and
    even `business_management`) and still see `data: []` if consent never
@@ -372,9 +382,9 @@ The fix is to re-authorise, and the only lever for that is blunt:
 1. In the Graph API Explorer, open the **User or Page** dropdown and choose
    **Uninstall the app**. There is no per-Page control here; it is all or
    nothing.
-2. Click **Generate Access Token** again. Because the app is no longer
+2. Choose **Get User Access Token** again. Because the app is no longer
    installed, the full consent flow runs rather than silently reusing the old
-   grant.
+   grant. Use **Edit settings**, not Continue.
 3. Choose **Opt in to current Pages only** if you want to see the list — that
    radio button is also the only place Facebook will show you exactly which
    Pages the app can be given.
@@ -435,7 +445,33 @@ query therefore uses *both* tokens, in that order.
 does this identity manage", which a Page token cannot ask — it already is one
 Page. Do not go looking for it there.
 
-**Exchange short-lived for long-lived:**
+### Get a long-lived user token (and then a Page token) without a terminal
+
+The Explorer token lasts about an hour. For anything beyond a quick test you
+want the longer chain. You can walk it in the browser:
+
+1. Copy the short-lived **user** token from Graph API Explorer.
+2. Open **Tools → Access Token Debugger**, paste it, click **Debug**.
+3. At the bottom, click **Extend Access Token** (requires the app secret —
+   Meta prompts for it; you get the secret from App Dashboard → **App
+   settings → Basic**). The result is a long-lived user token (~60 days).
+4. Back in Graph API Explorer, paste that long-lived token into the Access
+   Token field **or** run **Get User Access Token** again only if you must —
+   for the Page step you mainly need the long-lived user token in hand.
+5. Open **User or Page**. Under **Page Access Tokens**, click your Page
+   (for example the Page you administer). The Explorer switches to that
+   Page's token. **That is the token that reads comments.**
+6. Optional check: with the **user** token still selected, submit
+   `me/accounts?fields=id,name,tasks` — you should see the Page and
+   `MODERATE` in `tasks` if you will write.
+
+**Do not** select a Page token and then try to read `/me/accounts` — that is
+error 2500 or an empty list. Mint the Page token from the dropdown (or from
+the `access_token` field in a `/me/accounts` response), then use *that* for
+comments.
+
+**Optional, for developers** — exchange short-lived for long-lived in a shell
+(needs App ID and App Secret):
 
 ```bash
 curl -s "https://graph.facebook.com/v25.0/oauth/access_token\
@@ -445,12 +481,23 @@ curl -s "https://graph.facebook.com/v25.0/oauth/access_token\
 &fb_exchange_token=$SHORT_LIVED_TOKEN"
 ```
 
+Then list Pages and copy each Page's `access_token`:
+
+```bash
+curl -s -H "Authorization: Bearer $LONG_LIVED_USER_TOKEN" \
+  "https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token,tasks"
+```
+
 Per
 [Meta's long-lived token guide](https://developers.facebook.com/docs/facebook-login/guides/access-tokens/get-long-lived),
 Page access tokens derived from a long-lived user token do not carry an
 expiration date — they "only expire or are invalidated under certain conditions."
 That is a meaningful operational difference: you refresh the user token, not the
 Page tokens.
+
+If you paste tokens into tooling yourself: put them in an
+`Authorization: Bearer` header, not an `access_token=` query parameter. Query
+strings get recorded by proxies, CDNs and server logs; headers do not.
 
 ### Sixty days later, it breaks
 
@@ -489,32 +536,34 @@ from the Page and only the System-User-side assignment counts; and the
 permission picker is a scrolling multi-select where a missed tick is silent —
 the first token issued during this verification came back without
 `pages_manage_engagement`, read comments perfectly, and would have refused every
-write. Check the scopes on `debug_token`'s output, not in the picker.
+write. Check the scopes in **Access Token Debugger**, not only in the picker.
 
 Full walkthrough, with the trap and a known-good output to compare against:
 [The System User token and the 60-day expiry](system-user-token.md).
 
-**Then get the Page token:**
-
-```bash
-curl -s -H "Authorization: Bearer $LONG_LIVED_USER_TOKEN" \
-  "https://graph.facebook.com/v25.0/me/accounts?fields=id,name,access_token,tasks"
-```
-
-The `access_token` in each entry is that Page's token. **This is the token that
-reads comments.** Using the user token here is what produces the empty array at
-the top of this article.
-
-One thing worth saying plainly, because an AI assistant told me the wrong version
-of it and I believed it for longer than I should have: put the token in an
-`Authorization: Bearer` header, not an `access_token=` query parameter. Query
-strings get recorded by proxies, CDNs and server logs; headers do not. I wrote
-that up in
-The Agent Told Me How to Protect My Token. It Was Wrong.
+**Confirm you are on a Page token before reading comments.** In Graph API
+Explorer, **User or Page** should show your Page name (not "User Token"). Using
+the user token on `/{post-id}/comments` is what produces the empty array at the
+top of this article.
 
 ## Step 4: Verify the permissions you actually got
 
-Do not trust the App Dashboard screen. Ask the token what it carries:
+Do not trust the App Dashboard screen. Ask the token what it carries.
+
+**In the browser (preferred):**
+
+1. Open **Tools → Access Token Debugger**.
+2. Paste the token (user or Page — check each if unsure).
+3. Click **Debug**.
+
+The **Scopes** list on that screen is the truth. If `pages_read_user_content` is
+missing, comment reads will not work no matter what the dashboard shows, because
+the token was minted before the permission was added. Check
+`business_management` the same way when `/me/accounts` is empty, and `ads_read`
+when you need the ad path.
+
+**Optional, for developers** — the same check via `debug_token` (needs App ID
+and App Secret):
 
 ```bash
 curl -s "https://graph.facebook.com/v25.0/debug_token\
@@ -522,25 +571,10 @@ curl -s "https://graph.facebook.com/v25.0/debug_token\
 &access_token=$APP_ID|$APP_SECRET"
 ```
 
-The `scopes` array in the response is the truth. If `pages_read_user_content` is
-missing from it, comment reads will not work no matter what the dashboard shows,
-because the token was minted before the permission was added.
-
 The `check-permissions.sh` script in [Reader downloads](#reader-downloads) does
-this and diffs the result against the four permissions above.
-
-**If you added `ads_read` or `business_management`, check for them here too.**
-`business_management` is the one that looks optional until `/me/accounts` returns
-`[]` with every Page permission present. `ads_read` is the permission most
-likely to be missing without you noticing on a Page-only sweep — you simply find,
-later and confusingly, that you cannot get at the comments on your ads.
-`check-permissions.sh` does not look for either; the `scopes` array in the
-`debug_token` response above does.
-
-If you would rather click than curl, the same answer is in **Tools → Access
-Token Debugger**, which lists the token's scopes and its expiry on one screen.
-Both menu items live under **Tools** in the developer site header, alongside the
-Graph API Explorer.
+this and diffs the result against the four Page permissions above. It does not
+look for `ads_read` or `business_management`; the Debugger (or the `scopes`
+array in the curl response) does.
 
 ## Step 5: Check the MODERATE task before you try to write
 
@@ -552,19 +586,45 @@ permissions error that names neither the missing role nor the Page, and you go
 hunting through app configuration for a problem that is actually a Page role
 assigned in Business Settings.
 
-Check first:
+**In Graph API Explorer**, with a **user** token:
+
+1. Submit `me/accounts?fields=id,name,tasks`.
+2. Find your Page in `data`.
+3. Confirm `tasks` includes `MODERATE`.
+
+If it does not, fix the role in Business Settings / Page roles — not the app
+permissions list.
+
+**Optional, for developers:**
 
 ```bash
 curl -s -H "Authorization: Bearer $USER_TOKEN" \
-  "https://graph.facebook.com/v25.0/me/accounts?fields=id,name,tasks" \
-  | python3 -m json.tool
+  "https://graph.facebook.com/v25.0/me/accounts?fields=id,name,tasks"
 ```
-
-If `tasks` for your Page does not include `MODERATE`, fix the role, not the code.
 
 ## Reading the comments
 
-With a Page token in hand:
+With a **Page** token selected in Graph API Explorer (**User or Page** → your
+Page name):
+
+1. Put a real post id in the path (the number from the post URL, often after
+   the Page id — or copy it from a `/{page-id}/feed` response).
+2. Submit:
+
+   ```text
+   {post-id}/comments?fields=id,message,created_time,from,like_count,comment_count,is_hidden,can_comment,can_hide,permalink_url,parent&filter=toplevel&order=chronological
+   ```
+
+3. Leave method on **GET** → **Submit**.
+
+You should see comments in `data`. Empty `data` with a user token still selected
+means you are on the wrong token — switch to the Page.
+
+`filter=toplevel` returns top-level comments; `filter=stream` flattens replies
+into the same list. Replies to a specific comment come from that comment's own
+comments edge: `{comment-id}/comments`.
+
+**Optional, for developers:**
 
 ```bash
 curl -s -H "Authorization: Bearer $PAGE_TOKEN" \
@@ -573,14 +633,23 @@ curl -s -H "Authorization: Bearer $PAGE_TOKEN" \
 &filter=toplevel&order=chronological"
 ```
 
-`filter=toplevel` returns top-level comments; `filter=stream` flattens replies
-into the same list. Replies to a specific comment come from that comment's own
-comments edge: `/{comment-id}/comments`.
-
 ### Hiding and unhiding is one call, not two
 
 This surprised me. There is no hide endpoint and no unhide endpoint. There is one
-`POST` with a boolean:
+`POST` with a boolean.
+
+**In Graph API Explorer**, with the **Page** token selected:
+
+1. Set the method dropdown to **POST**.
+2. Path: `{comment-id}` (the comment's id from the list above).
+3. Add a field `is_hidden` with value `true` (hide) or `false` (unhide).
+4. **Submit**.
+
+Graph answers `{"success": true}`. Worth noting: it can also answer with
+`{"success": false}`, which is not a success. Check the body, not only that the
+call "worked".
+
+**Optional, for developers:**
 
 ```bash
 # hide
@@ -591,9 +660,6 @@ curl -s -X POST -H "Authorization: Bearer $PAGE_TOKEN" \
 curl -s -X POST -H "Authorization: Bearer $PAGE_TOKEN" \
   -d "is_hidden=false" "https://graph.facebook.com/v25.0/$COMMENT_ID"
 ```
-
-Graph answers `{"success": true}`. Worth noting: it can also answer HTTP 200 with
-`{"success": false}`, which is not a success. Check the body, not the status code.
 
 ## Comments on ads: a separate article
 
@@ -690,22 +756,26 @@ One Page Is Not a Platform.
 
 ## Pin the API version
 
-Do not build URLs against an unversioned host and do not scatter version strings
-through your code. Put it in one place.
+In Graph API Explorer, set the version dropdown (for example `v25.0`) and leave
+it there while you test. Do not build against an unversioned host.
+
+If you are writing code: put the version in one place; do not scatter version
+strings through the codebase.
 
 As of September 2026, `v26.0` is current (released 2026-07-29) and `v25.0` is
 available until 2028-07-28. I pin `v25.0` deliberately — a version that has been
 in the field for months has known behaviour, and the newest one does not. Review
 the pin on a schedule, not on a whim.
 
-## Reader downloads
+## Reader downloads (optional — developers)
 
-Two scripts, both of which answer questions this article raises:
+Shell scripts that answer the same questions this article raises in the
+Explorer. Skip this section if you are testing only in the browser.
 
 | File | What it does |
 |---|---|
 | `get-page-token.sh` | Exchanges a user token via `/me/accounts`, prints each Page's id, name and `tasks`, and flags which ones lack `MODERATE`. Never prints a token. |
-| `check-permissions.sh` | Calls `debug_token` and diffs the granted scopes against the four permissions above, naming what is missing. |
+| `check-permissions.sh` | Calls `debug_token` and diffs the granted scopes against the four Page permissions above, naming what is missing. |
 | `.env.example` | Placeholders only. |
 
 ```bash
@@ -755,10 +825,10 @@ The setup above is the resolution to a series of things that went wrong first:
   tick the Pages you need. Do not confuse this with the comments empty-array
   (that one is using a user token where a Page token is required).
 - Selecting a **use case is not granting a permission**, and a token minted
-  before you added a permission does not carry it. Verify with `debug_token`.
-  For ads: open **User or Page → Get User Access Token** and select the Page
-  scopes, `business_management`, and `ads_read` — not `ads_read` alone. Skip
-  `ads_read` if you only sweep Pages.
+  before you added a permission does not carry it. Verify in **Access Token
+  Debugger**. For ads: open **User or Page → Get User Access Token** and select
+  the Page scopes, `business_management`, and `ads_read` — not `ads_read`
+  alone. Skip `ads_read` if you only sweep Pages.
 - **You cannot name the app after the platform.** `Facebook`, `Meta` and their
   near-variants are rejected. Name it for the job it does — the name is also
   something App Review weighs later.
@@ -771,7 +841,8 @@ The setup above is the resolution to a series of things that went wrong first:
   Review** for Pages outside your own app. Development mode covers Pages you
   personally administer, and nothing more.
 - Writes need the **`MODERATE` task** on the Page, which is a Page role, not an
-  app permission. Check `tasks` before you debug your app config.
+  app permission. Check `tasks` on `me/accounts` in the Explorer before you
+  debug your app config.
 - `from` and `can_hide` **are returned** — I checked against a live Page — but
   neither is documented, so neither is promised. Compute "needs a reply" both
   ways and report which basis you used, because the weaker answer looks exactly
