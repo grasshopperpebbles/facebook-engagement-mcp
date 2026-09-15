@@ -553,6 +553,95 @@ describe("runCommentActivity", () => {
     expect(Number(limit)).toBeGreaterThan(1)
   })
 
+  it("names the identity that read it, on every answer (T-42)", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/debug_token")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              type: "SYSTEM_USER",
+              application: "GrasshopperPebbles Engagement",
+              expires_at: 0,
+              is_valid: true,
+            },
+          }),
+          { status: 200 },
+        )
+      }
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+      if (pathname.endsWith("/pg1_p1/comments")) {
+        return new Response(fixture("comments-p1"), { status: 200 })
+      }
+      return new Response(JSON.stringify({ data: [] }), { status: 200 })
+    })
+
+    const result = await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+    const activity = result as { identity?: { type?: string; neverExpires?: boolean } }
+
+    // On EVERY answer, not only the degraded ones: a field that appears only on
+    // bad days teaches a caller to read its absence as good news.
+    expect(activity.identity?.type).toBe("SYSTEM_USER")
+    // `expires_at: 0` is falsy and means "never" — the distinction this whole
+    // project turns on.
+    expect(activity.identity?.neverExpires).toBe(true)
+  })
+
+  it("warns about a System User token only when something is actually missing (T-42)", async () => {
+    const withPhotos = (hidden: boolean) =>
+      vi.fn(async (url: string) => {
+        const { pathname, searchParams } = new URL(url)
+        if (pathname.endsWith("/debug_token")) {
+          return new Response(
+            JSON.stringify({ data: { type: "SYSTEM_USER", is_valid: true, expires_at: 0 } }),
+            { status: 200 },
+          )
+        }
+        if (pathname.endsWith("/me/accounts")) {
+          const wantsToken = searchParams.get("fields")?.includes("access_token")
+          return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+        }
+        if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+        if (pathname.endsWith("/photos")) {
+          return new Response(
+            JSON.stringify({
+              data: hidden
+                ? [{ id: "ph1", page_story_id: "pg1_hidden" }]
+                : [{ id: "ph1", page_story_id: "pg1_p1" }],
+            }),
+            { status: 200 },
+          )
+        }
+        if (pathname.endsWith("/pg1_hidden/comments")) {
+          return new Response(JSON.stringify({ error: { message: "no", code: 100 } }), {
+            status: 400,
+          })
+        }
+        if (pathname.endsWith("/pg1_p1/comments")) {
+          return new Response(fixture("comments-p1"), { status: 200 })
+        }
+        return new Response(JSON.stringify({ data: [] }), { status: 200 })
+      })
+
+    const degraded = (await runCommentActivity(deps(withPhotos(true)), {
+      page: "pg1",
+      filter: "all",
+    })) as { notes: string[] }
+    const clean = (await runCommentActivity(deps(withPhotos(false)), {
+      page: "pg1",
+      filter: "all",
+    })) as { notes: string[] }
+
+    expect(degraded.notes.join(" ")).toContain("Business System User token")
+    // The point of gating it: a caveat on every response is read as boilerplate
+    // by the third one, and this needs believing on the day it matters.
+    expect(clean.notes.join(" ")).not.toContain("Business System User token")
+  })
+
   it("reports posts this token cannot read, found through their photos (T-37)", async () => {
     // The shape confirmed live on 2026-09-15: two Page tokens on one Page
     // return different post lists. The cause is not settled — the identity

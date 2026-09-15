@@ -17,6 +17,7 @@ import type {
   RawPage,
   RawPhoto,
   RawPost,
+  TokenIdentity,
 } from "./types.js"
 
 export * from "./constants.js"
@@ -40,6 +41,20 @@ export interface PagesClient {
   posts: {
     list(pageId: string, options?: PostListOptions): Promise<PagedResult<PagePost>>
   }
+  /**
+   * What this token IS, as Meta sees it.
+   *
+   * Exists because the identity behind a token changes the answer: a Business
+   * System User token was shown three posts on a Page where a personally-
+   * granted token for the same app was shown five, and returned no author for
+   * comments the other identified (2026-09-15). Neither difference announces
+   * itself, so a caller that cannot name its own identity cannot explain a
+   * short answer.
+   *
+   * Never throws for an invalid token — an unusable token is an answer, and
+   * `valid: false` is how it is returned.
+   */
+  identity(): Promise<TokenIdentity>
   photos: {
     /**
      * Photos uploaded to a Page, carrying the post each belongs to.
@@ -90,6 +105,12 @@ export function createPagesClient(options: {
 }): PagesClient {
   const transport = createTransport(options)
 
+  // `identity()` needs the token itself rather than a request carrying it,
+  // because `/debug_token` inspects a token passed as a value. Everything else
+  // here lets the transport resolve it.
+  const resolveToken = async (): Promise<string> =>
+    typeof options.accessToken === "string" ? options.accessToken : await options.accessToken()
+
   const page = <Raw, Out>(
     path: string,
     fields: readonly string[],
@@ -136,6 +157,38 @@ export function createPagesClient(options: {
         page<RawPost, PagePost>(`/${pageId}/feed`, POST_FIELDS, normalizePost, opts, {
           ...(opts.since !== undefined && { since: opts.since }),
         }),
+    },
+
+    // `/debug_token` takes the token under inspection as a QUERY PARAMETER and
+    // accepts it no other way, which is the one deliberate exception to this
+    // client's tokens-in-headers rule (http.ts). Confined to graph.facebook.com
+    // over TLS, and the transport logs no URLs.
+    identity: async () => {
+      const token = await resolveToken()
+      try {
+        const body = await transport.get<{
+          data?: {
+            type?: string
+            app_id?: string
+            application?: string
+            expires_at?: number
+            is_valid?: boolean
+          }
+        }>("/debug_token", { input_token: token })
+        const d = body.data ?? {}
+        return {
+          ...(d.type !== undefined && { type: d.type }),
+          ...(d.app_id !== undefined && { appId: d.app_id }),
+          ...(d.application !== undefined && { appName: d.application }),
+          // `expires_at: 0` means never, and 0 is falsy — the distinction this
+          // whole project turns on, so it is checked against undefined.
+          ...(d.expires_at !== undefined && { expiresAt: d.expires_at }),
+          valid: d.is_valid === true,
+        }
+      } catch {
+        // A token Graph will not even debug is not a crash, it is a `false`.
+        return { valid: false }
+      }
     },
 
     photos: {

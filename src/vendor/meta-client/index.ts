@@ -36,6 +36,7 @@ export type {
   PageCredentials,
   PagePhoto,
   PagePost,
+  TokenIdentity,
 } from "./pages/types.js"
 export * from "./types.js"
 

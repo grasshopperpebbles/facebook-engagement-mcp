@@ -90,6 +90,28 @@ export interface PageCredentials {
   tokenless: string[]
 }
 
+/**
+ * Which identity a token speaks for.
+ *
+ * `SYSTEM_USER` — a Business Manager system user. Does not expire, and has been
+ * observed on 2026-09-15 being shown **fewer posts** on a Page, and returning
+ * **no author** for comments written by people, than a personally-granted token
+ * for the same app on the same Page. Both differences are silent.
+ * `USER` — a person granted this app access. Expires.
+ * `PAGE` — a Page token. There is no `/me/accounts` to exchange from one.
+ *
+ * Reported rather than acted on: which trade-off to take is the caller's, and
+ * an answer that quietly picked one would be the thing this type exists to stop.
+ */
+export interface TokenIdentity {
+  type?: "USER" | "SYSTEM_USER" | "PAGE" | string
+  appId?: string
+  appName?: string
+  /** Unix seconds; `0` means never. Absent means Graph did not say. */
+  expiresAt?: number
+  valid: boolean
+}
+
 /** A Page photo, normalized. `postId` is the post it was published in. */
 export interface PagePhoto {
   id: string

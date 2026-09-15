@@ -773,7 +773,9 @@ something not fully tested.
    in `notes` with `partial: true`. **The count is a minimum** — a text-only
    post leaves no photo behind — so the absence of that note is not a promise
    that nothing is missing. If posts are missing, try a token granted by a
-   person who administers the Page.
+   person who administers the Page. **Every response tells you which kind you
+   are using**, in `identity` — and says so plainly when a System User token
+   produced an answer that lost something.
 
    The rule Meta is applying here is not established, and an earlier version of
    this entry named the wrong one: it said a post is not returned to an app

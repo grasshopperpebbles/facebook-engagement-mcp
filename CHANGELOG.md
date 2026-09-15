@@ -2,6 +2,38 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.12] — 2026-09-15
+
+### Added
+
+- **Every answer now says which identity read it.** `comment_activity` returns
+  `identity` — the token's `type`, the app it belongs to, and whether it never
+  expires — on the orientation response and on every sweep.
+
+  This exists because two Page access tokens for the same Page, issued by the
+  same app, do not return the same thing: a Business System User's was shown
+  three posts where a personally-granted user token was shown five, and returned
+  no author for comments the other identified. Neither difference announces
+  itself, so an answer that cannot name its own identity cannot explain why it
+  is short.
+
+  **Both token kinds were always supported** — the exchange is identical. What
+  was missing was saying which one you gave it.
+
+  It is reported on *every* answer rather than only degraded ones, because the
+  degradation is not always detectable, and a field that appears only on bad
+  days teaches you to read its absence as good news.
+
+- **A warning when it plausibly cost you something**, gated the other way: added
+  only when a System User token produced a response that actually lost
+  something — an unreadable post, or a thread whose last word carried no author.
+  A caveat on every response is boilerplate by the third one, and this one needs
+  believing on the day it matters.
+
+- `pages.identity()` in the vendored Meta client. Returns `valid: false` rather
+  than throwing for a token Graph will not debug: an unusable token is an
+  answer, not a crash.
+
 ## [0.1.11] — 2026-09-15
 
 ### Fixed

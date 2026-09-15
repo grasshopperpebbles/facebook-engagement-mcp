@@ -93,8 +93,29 @@ export interface RenderedGroup extends Omit<Group, "threads"> {
   threads: RenderedThread[]
 }
 
+/**
+ * Which identity read this, named because it changes what came back.
+ *
+ * A Business System User token was shown three posts on a Page where a
+ * personally-granted token for the same app was shown five, and returned no
+ * author for comments the other identified (2026-09-15). Both differences are
+ * silent, so an answer that cannot name its own identity cannot explain itself.
+ *
+ * Reported on every response rather than only when something looks wrong: the
+ * degradation is not always detectable, and a field that appears only on bad
+ * days teaches a caller to read its absence as good news.
+ */
+export interface Identity {
+  type?: string
+  appName?: string
+  /** True when Graph reported `expires_at: 0`. */
+  neverExpires?: boolean
+}
+
 export interface CommentActivity {
   target: Target
+  /** Which token read this. See `Identity` — it changes the answer. */
+  identity?: Identity
   filter: Filter
   groupBy: GroupBy
   since: string
@@ -176,6 +197,26 @@ const MAX_REPLIES_FOR_COMMENT_TARGET = 100
  * cannot starve the comments, which are the actual answer.
  */
 const POST_TEXT_BUDGET = Math.floor(MAX_RESPONSE_TEXT_CHARS / 4)
+
+/**
+ * The identity behind the token, or `undefined` when Graph would not say.
+ *
+ * Never throws and never fails the answer: this is context on a result, not a
+ * precondition for producing one.
+ */
+async function describeIdentity(deps: Deps): Promise<Identity | undefined> {
+  try {
+    const id = await deps.client.identity()
+    if (!id.valid && id.type === undefined) return undefined
+    return {
+      ...(id.type !== undefined && { type: id.type }),
+      ...(id.appName !== undefined && { appName: id.appName }),
+      ...(id.expiresAt !== undefined && { neverExpires: id.expiresAt === 0 }),
+    }
+  } catch {
+    return undefined
+  }
+}
 
 function isoDaysAgo(days: number, today: Date): string {
   const date = new Date(today.getTime() - days * 24 * 60 * 60 * 1000)
@@ -364,8 +405,12 @@ export async function runCommentActivity(
     }
 
     const ads = await listAdAccounts(deps)
+    // Orientation is the call a model makes before it knows what it needs, so
+    // it is the right place to learn what it is holding.
+    const identity = await describeIdentity(deps)
     return {
       pages,
+      ...(identity !== undefined && { identity }),
       ...(ads.accounts !== undefined && { adAccounts: ads.accounts }),
       ...(ads.notes.length > 0 && { notes: ads.notes }),
     }
@@ -669,6 +714,7 @@ export async function runCommentActivity(
   // count is a floor, and the note says so rather than implying it is complete.
   // Under-claiming here is the safe direction — the alternative is telling
   // somebody the sweep was complete when nothing can establish that.
+  let unreadablePosts = 0
   if (target.kind === "page") {
     try {
       const { items: photos } = await client.photos.forPage(target.id, {
@@ -694,6 +740,7 @@ export async function runCommentActivity(
       // this token read the post's comments — and only a refusal counts. A
       // readable post with no comments answers with an empty list, which is a
       // success and is not counted.
+      /** Kept beyond this block so the identity note can weigh it. */
       const unreadable: string[] = []
       for (const postId of candidates.slice(0, MAX_GAP_PROBES)) {
         try {
@@ -703,6 +750,7 @@ export async function runCommentActivity(
         }
       }
 
+      unreadablePosts = unreadable.length
       if (unreadable.length > 0) {
         partial = true
         notes.push(
@@ -744,6 +792,22 @@ export async function runCommentActivity(
     notes.push(
       `'since' (${since}) filters the post sweep of a page target only. It was not applied to ` +
         `this ${target.kind} target, so comments older than that date can appear below.`,
+    )
+  }
+
+  // The identity goes on every response; the WARNING goes on only the ones
+  // where it plausibly cost something. A caveat that fires every time is read
+  // as boilerplate by the third response, and this one needs to be believed on
+  // the day it matters.
+  const identity = await describeIdentity(deps)
+  if (identity?.type === "SYSTEM_USER" && (unreadablePosts > 0 || withoutAuthors > 0)) {
+    notes.push(
+      "This read used a Business System User token. On 2026-09-15 such a token was shown three " +
+        "posts on a Page where a personally-granted token for the same app was shown five, and " +
+        "returned no author for comments the other identified — silently, in both cases. Some of " +
+        "what is missing or unattributed above may be that rather than the Page. A token granted " +
+        "by a person who administers the Page is the check; it expires, which is why this one is " +
+        "recommended.",
     )
   }
 
@@ -808,6 +872,7 @@ export async function runCommentActivity(
 
   return {
     target,
+    ...(identity !== undefined && { identity }),
     filter,
     groupBy,
     since,
