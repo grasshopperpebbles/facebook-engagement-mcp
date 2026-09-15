@@ -2,6 +2,43 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.11] — 2026-09-15
+
+### Fixed
+
+- **0.1.10 blamed the wrong thing, and 0.1.9 stated a limitation that is not
+  true.** Both are corrected here. The behaviour of the code is unchanged in
+  0.1.10's case; what it says about the behaviour is not.
+
+  A personally-granted Page token for the **same app** as the Business System
+  User one returned **five** posts where the System User's returned three, read
+  the two missing posts and their comments without complaint, and returned
+  `from: { name, id }` for a person's comments that the System User token
+  returned with no author at all.
+
+  So: a post is **not** withheld from apps other than the one that published it
+  (0.1.10), and Facebook does **not** simply withhold author information for
+  people (0.1.9). Both were conclusions drawn from comparisons in which the
+  token was never held still.
+
+  What is observed, and all that is claimed: **some Page access tokens are shown
+  fewer posts than others on the same Page, and identify fewer of the
+  commenters.** A token exchanged from a Business System User has been seen to
+  do both. If posts or authors are missing, try a token granted by a person who
+  administers the Page.
+
+  This matters because the setup guide recommends the System User token, for the
+  good reason that it does not expire. It is also the identity observed seeing
+  less.
+
+  The unreadable-posts check added in 0.1.10 is unchanged and was never wrong —
+  it reports posts these credentials cannot read, found through the photos
+  inside them. Only its explanation moved.
+
+- **Known limitations** rewritten accordingly, and `docs/dark-posts.md` with it,
+  including a retitle: the article is no longer about what another app
+  published.
+
 ## [0.1.10] — 2026-09-15
 
 ### Added

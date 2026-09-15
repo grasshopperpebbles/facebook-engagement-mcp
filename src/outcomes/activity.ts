@@ -641,13 +641,24 @@ export async function runCommentActivity(
     )
   }
 
-  // T-37: say when the Page holds posts this token cannot read.
+  // T-37: say when the Page holds posts these credentials cannot read.
   //
-  // A post published through one app is not readable by another app's Page
-  // token — confirmed 2026-09-15 by diffing two tokens on one Page against the
-  // publishing tool's own records, five posts for five. There is no error and
-  // no gap in the response; the list is simply shorter, which is the worst way
-  // for a triage tool to be wrong.
+  // Some Page tokens are shown fewer posts than others on the same Page.
+  // Observed 2026-09-15: a Page token exchanged from a Business System User
+  // returned three posts where one exchanged from a personally-granted user
+  // token, FOR THE SAME APP, returned five — and read the missing two, and
+  // their comments, without complaint.
+  //
+  // The cause is not established, and this comment has already been wrong once
+  // about it. The first version said "a post is not returned to an app other
+  // than the one that published it", on a five-for-five correlation between the
+  // missing posts and another tool's publishing records. Both differences were
+  // present at once — different app AND different identity type — and only the
+  // identity survived being tested separately.
+  //
+  // What is not in doubt is the consequence: there is no error and no gap in
+  // the response, the list is simply shorter, and that is the worst way for a
+  // triage tool to be wrong.
   //
   // It is detectable because the withheld post's PHOTOS stay reachable, and
   // every photo names its post in `page_story_id`. So any story id the photos
@@ -697,10 +708,12 @@ export async function runCommentActivity(
         notes.push(
           `At least ${unreadable.length} post(s) on this Page could not be read with these ` +
             "credentials and are missing from this answer, along with any comments on them. " +
-            "Facebook does not return a post to an app other than the one that published it, so " +
-            "posts scheduled or published through another tool are invisible here. This count " +
-            "is a minimum: these were found through the photos those posts contain, so a " +
-            "text-only post cannot be detected at all.",
+            "Facebook shows some Page access tokens fewer posts than others on the same Page: a " +
+            "token exchanged from a Business System User has been observed returning fewer than " +
+            "one exchanged from a personally-granted user token for the same app. If posts are " +
+            "missing, try a token granted by a person who administers the Page. This count is a " +
+            "minimum: these were found through the photos those posts contain, so a text-only " +
+            "post cannot be detected at all.",
         )
       }
     } catch (cause) {

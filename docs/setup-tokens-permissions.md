@@ -438,13 +438,15 @@ now has its own:
 Published](./dark-posts.md)**.
 
 **That article now carries a second reason a post goes missing, and it is not
-about ads at all: Facebook does not return a post to an app other than the one
-that published it.** So if you schedule through Buffer, Hootsuite, Later or
-Business Suite, those posts — and every comment on them — are absent from a
-`/feed` sweep with all the setup on this page done perfectly, and cannot be read
-by id either. Confirmed 2026-09-15 by reading one Page with two Page tokens
-belonging to different apps, five posts for five. It is partly detectable, and
-[the article says how](./dark-posts.md#the-second-reason-a-post-is-missing-another-app-published-it).
+about ads at all: two Page tokens for the same Page, issued by the same app, are
+shown different numbers of posts.** A token exchanged from a Business System
+User returned three posts where one exchanged from a personally-granted user
+token returned five — and read the missing two, and their comments, without
+complaint. The missing posts are absent from every edge on this page with the
+setup done perfectly, and cannot be read by id either. So a `/feed` sweep can be
+short with nothing to say it is, and **the first thing to try is a token granted
+by a person who administers the Page**. Confirmed 2026-09-15; it is partly
+detectable, and [the article says how](./dark-posts.md#the-second-reason-a-post-is-missing-the-token-you-are-using).
 
 It assumes the setup on this page, plus the `ads_read` scope from
 [Step 1](#and-a-fifth-for-ads--which-is-not-on-that-page-at-all).
@@ -546,7 +548,7 @@ keep that property — a token in a terminal is a token in your shell history.
 
 ## Related reading
 
-- [The Posts /feed Won't Return: Your Ads' Comments, and Anything Another App Published](./dark-posts.md)
+- [The Posts /feed Won't Return: Your Ads' Comments, and Whatever Your Token Can't See](./dark-posts.md)
   — the companion piece. If you run ads, read it; this configuration alone does
   not reach those comments.
 - [Meta Told Me I Needed a Permission That Died in 2018](./publish-actions-error.md)

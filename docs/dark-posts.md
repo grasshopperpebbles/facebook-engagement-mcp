@@ -1,7 +1,7 @@
 ---
-title: "The Posts /feed Won't Return: Your Ads' Comments, and Anything Another App Published"
+title: "The Posts /feed Won't Return: Your Ads' Comments, and Whatever Your Token Can't See"
 date: 2026-09-08
-verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. The ad-resolution chain was run end to end through a real paused ad on 2026-09-08. The second reason a post goes missing — another app published it — was confirmed 2026-09-15 by reading one Page with two Page tokens belonging to different apps and diffing both lists against the publishing tool's own records."
+verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. The ad-resolution chain was run end to end through a real paused ad on 2026-09-08. The second reason a post goes missing — another app published it — was confirmed 2026-09-15 by reading one Page with three different Page tokens — a Business System User's, another app's, and a personally-granted one for the same app as the first."
 ---
 
 <!-- Source of truth for this article is the broadkast content repo,
@@ -10,7 +10,7 @@ verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. 
      code correctly and does not depend on a site being live. -->
 
 
-# The Posts `/feed` Won't Return: Your Ads' Comments, and Anything Another App Published
+# The Posts `/feed` Won't Return: Your Ads' Comments, and Whatever Your Token Can't See
 
 If you run ads on Facebook, the comments you most want to read are the ones you
 cannot get to. They are not on your Page. They are on posts that were never
@@ -288,57 +288,72 @@ comment requires the ad to actually deliver. So triage of a stranger's comment,
 on a dark post, remains untested. I would rather say that than imply a
 completeness I have not earned.
 
-## The second reason a post is missing: another app published it
+## The second reason a post is missing: the token you are using
 
 Everything above is about posts that were never published. There is a second
 way for a post to be absent from `/feed`, it has nothing to do with ads, and it
 is worse, because the post is *on your Page and visible to anyone looking at
 it*.
 
-**Facebook does not return a post to an app other than the one that published
-it.**
+**Two Page access tokens for the same Page, issued by the same app, are shown
+different numbers of posts.**
 
 I found this while checking something else. The Page had a multi-image post on
-it, published a few days earlier by a different tool of mine. It was there in
-the browser, with comments on it. It was not in `/feed`. It was not in `/posts`
-or `/published_posts` either, and `include_hidden=true` changed nothing — the
-same four-edge sweep from the top of this article, and the same answer.
+it, published a few days earlier. It was there in the browser, with comments on
+it. It was not in `/feed`. Not in `/posts` or `/published_posts` either, and
+`include_hidden=true` changed nothing — the same four-edge sweep from the top of
+this article, and the same answer. Reading it by id gave `(#10)`; its comments
+edge gave `(#100)` subcode 33.
 
-The obvious suspicions were all wrong. Not the API version: v24.0 and v25.0
-returned identical lists. Not the edge. Not the post's format — a plain text
-post published by the same tool was equally absent, and a text post I typed into
-the Page by hand came back immediately.
+The obvious suspicions were all wrong. Not the API version — v24.0 and v25.0
+returned identical lists. Not the edge. Not the post's format: a plain text post
+was equally absent, while another text post typed into the Page by hand came
+back immediately.
 
-What settled it was reading the same Page with **two Page tokens belonging to
-different apps**, and checking both lists against the publishing tool's own
-database:
+What it turned out to be is the **identity behind the token**:
 
-| Post | How it was published | App A's token | App B's token |
-|---|---|---|---|
-| text post | by hand, in the browser | yes | yes |
-| album, 5 photos | through app A | **yes** | **no** |
-| text post | through app A | **yes** | **no** |
-| cover photo | by hand | yes | yes |
-| profile picture | by hand | yes | yes |
+| Token | Exchanged from | Posts returned |
+|---|---|---|
+| A | a Business **System User** token | **3** |
+| B | a **personally-granted** user token | **5** |
 
-Five for five. The two posts app B could not see are exactly the two rows in app
-A's records; the three it could see are exactly the three that are not.
+Same Page. Same app. Same `/{page-id}/posts` call. Token B returned everything
+token A did, plus the two posts token A could not see — and read those posts'
+comments without complaint.
 
-**It is not merely missing from the sweep.** Naming the post directly does not
-help either — reading it by id gives `(#10)`, and its comments edge gives
-`(#100)` with subcode 33. The post is unreachable, not just unlisted, so the
-`post` target is no escape hatch.
+### I got this wrong first, and the wrong version was convincing
+
+My first explanation was that *a post is not returned to an app other than the
+one that published it*. The two invisible posts had been published by a
+different tool of mine, and when I checked the missing ids against that tool's
+own database they matched exactly — five posts, five for five. It is a clean
+correlation and it is wrong.
+
+**Two things differed between the tokens I compared, and I only tested one of
+them.** The other tool's token belonged to a different app *and* was a different
+kind of identity. I attributed the difference to the app because that was the
+difference I had noticed. It took a third token — same app as the failing one,
+personal grant instead of System User — to separate them, and when it saw all
+five posts the app explanation died.
+
+If you take one thing from this article, let it be that rather than the finding:
+**a correlation that comes out five for five is exactly as strong as your
+confidence that only one thing varied.**
 
 ### What this costs you
 
-If you schedule or publish through anything other than the tool doing the
-reading — Buffer, Hootsuite, Later, Meta's own Business Suite scheduler, your
-own code — then those posts, **and every comment on them**, are absent from what
-you get back.
+If you authenticate with a Business System User token — which is the token
+normally recommended for server-side work, because it does not expire — you may
+be shown fewer posts than your Page has, **and every comment on them goes
+missing with them**.
 
 There is no error. The list is simply shorter. For a tool whose job is finding
 the comments that need a reply, that is the worst available failure: a confident
-answer, missing the half you care about, with nothing to indicate it.
+answer, missing part of the corpus, with nothing to indicate it.
+
+I have not established the rule Meta is applying, and after getting it wrong
+once I am not going to guess a second time. What is reproducible is the
+comparison above.
 
 ### How to detect it
 
@@ -349,14 +364,13 @@ each photo carries `page_story_id` — the `{page-id}_{post-id}` of the post it
 belongs to. So any story id the photos know and your sweep never saw is a
 candidate.
 
-**A candidate, not a finding.** The first version of this check in my own
-tooling treated "absent from the feed" as "unreadable", and it was wrong on the
-first Page it ran against: a Page's cover photo names a `page_story_id` that
-`/feed` does not list the post under. It looked withheld, it read back with a
-plain `200`, and because there happened to be exactly two genuinely missing
-posts, **the total came out right for the wrong reason**. A check that agrees
-with the truth by accident is worse than one that disagrees, because nothing
-will ever make it complain.
+**A candidate, not a finding.** The first version of this check treated "absent
+from the feed" as "unreadable", and it was wrong on the first Page it ran
+against: a Page's cover photo names a `page_story_id` that `/feed` does not list
+the post under. It looked withheld, it read back with a plain `200`, and because
+there happened to be exactly two genuinely missing posts, **the total came out
+right for the wrong reason**. A check that agrees with the truth by accident is
+worse than one that disagrees, because nothing will ever make it complain.
 
 So probe each candidate and count only the refusals:
 
@@ -369,19 +383,12 @@ GET /{page-id}/photos?type=uploaded&fields=id,page_story_id
 ```
 
 **The number you get is a floor.** A text-only post leaves no photo behind and
-cannot be detected at all — one of the two missing posts in the table above is
-invisible to this check. "No posts detected" does not mean "nothing is missing",
-and any tool reporting this should say so rather than implying the sweep was
-complete.
+cannot be detected at all — one of the two missing posts above is invisible to
+this check. "No posts detected" does not mean "nothing is missing", and any tool
+reporting this should say so rather than implying the sweep was complete.
 
-### What I am not claiming
-
-I have not established the mechanism. "A post belongs to the app that published
-it" describes what five observations did; it is not a citation, and I could not
-find this documented anywhere. What I am confident of is the behaviour, because
-it was reproduced deliberately with two tokens rather than noticed once.
-
-If you know the rule Meta is actually applying here, the Page comments are open.
+**And if posts are missing, try the other kind of token.** That is the cheapest
+diagnostic there is, and it is the one that took me longest to reach.
 
 ## Reader downloads
 
@@ -435,11 +442,13 @@ keep that property — a token in a terminal is a token in your shell history.
 - **Some ad formats create no Page post at all** — dynamic creative built
   entirely in Ads Manager. Those comments are unreachable by any Page-based
   route, and no workaround changes that.
-- **A post published through another app is also absent from `/feed`**, and from
-  `/posts`, `/published_posts` and `include_hidden=true` — and cannot be read by
-  id either. Confirmed on 2026-09-15 with two Page tokens on one Page, five
-  posts for five. If you schedule through another tool, those posts and their
-  comments are missing with no error.
+- **Some Page tokens are shown fewer posts than others on the same Page.** A
+  token exchanged from a Business System User returned three posts where one
+  exchanged from a personally-granted user token, for the same app, returned
+  five — and read the missing two and their comments without complaint. The
+  missing posts are absent from `/feed`, `/posts`, `/published_posts` and
+  `include_hidden=true`, and cannot be read by id either. No error; the list is
+  just shorter.
 - **You can detect most of it**: the photos inside a withheld post stay
   reachable and name their post in `page_story_id`. Probe each named post you
   did not sweep and count the refusals — not the absences, which is a different

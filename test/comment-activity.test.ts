@@ -555,10 +555,11 @@ describe("runCommentActivity", () => {
 
   it("reports posts this token cannot read, found through their photos (T-37)", async () => {
     // The shape confirmed live on 2026-09-15: two Page tokens on one Page
-    // return different post lists, because a post published through one app is
-    // not returned to another app's token. The response is not wrong, it is
-    // SHORT — no error, no gap, just fewer posts — which for a triage tool is
-    // the worst way to be wrong.
+    // return different post lists. The cause is not settled — the identity
+    // behind the token is what survived testing, not the app — but the
+    // consequence is what this asserts. The response is not wrong, it is SHORT:
+    // no error, no gap, just fewer posts, which for a triage tool is the worst
+    // way to be wrong.
     //
     // The photos of the withheld post stay reachable and name it in
     // `page_story_id`, so the sweep can count what it was not shown.
@@ -604,7 +605,7 @@ describe("runCommentActivity", () => {
 
     // One, not two: `pg1_elsewhere` is absent from the sweep and readable.
     expect(activity.notes.join(" ")).toContain("At least 1 post(s)")
-    expect(activity.notes.join(" ")).toContain("published through another tool")
+    expect(activity.notes.join(" ")).toContain("try a token granted by a person")
     // A short answer is a partial answer, and must say so in the flag as well
     // as in the prose.
     expect(activity.partial).toBe(true)

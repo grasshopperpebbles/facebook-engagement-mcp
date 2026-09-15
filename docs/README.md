@@ -7,7 +7,7 @@ Meta's documentation because they contradict it.
 | Read this | When |
 |---|---|
 | [Setup, tokens and permissions](./setup-tokens-permissions.md) | **Start here.** Creating the Meta app, the three-token chain, the `MODERATE` role, and why a correctly-scoped call can return an empty array. |
-| [Dark posts and why `/feed` misses your ads](./dark-posts.md) | You passed a `page` target and a post you can see on the Page is missing. Covers both causes: ads run on unpublished posts that no Page-level edge reaches (and the `ad`/`campaign` route that does), and **a post published through another app is not returned to yours** — so anything you scheduled through Buffer, Hootsuite or Business Suite is invisible, comments included. |
+| [Dark posts and why `/feed` misses your ads](./dark-posts.md) | You passed a `page` target and a post you can see on the Page is missing. Covers both causes: ads run on unpublished posts that no Page-level edge reaches (and the `ad`/`campaign` route that does), and **two tokens for the same Page are shown different numbers of posts** — a System User's saw three where a personally-granted one saw five, comments included. |
 | [The `publish_actions` error](./publish-actions-error.md) | A write was refused naming a permission removed in 2018. It is not about permissions. |
 
 Each was written from work done against a live Meta app and a live Page, and

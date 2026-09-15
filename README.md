@@ -754,29 +754,34 @@ something not fully tested.
    that failure at least is not swallowed: the response marks itself `partial`
    and `notes` says which post and why, rather than reporting a confident zero.
 
-2. **Facebook will not show you a post that another app published — and the
-   comments on it go with it.** A Page post is returned to the app that
-   published it and not to others. Confirmed on 2026-09-15 by reading one Page
-   with two Page tokens belonging to different apps and checking both lists
-   against the publishing tool's own records: five posts for five, the two
-   published through another app visible only to that app's token. The
-   withheld post is not merely missing from the sweep — it cannot be read by id
-   either, so naming it with a `post` target does not help.
+2. **Some Page tokens are shown fewer posts than others, and the comments go
+   with them.** Two Page access tokens for the same Page, issued by the same
+   app, returned different post lists on 2026-09-15: one exchanged from a
+   **Business System User** token saw three posts; one exchanged from a
+   **personally-granted** user token saw five, and read the missing two and
+   their comments without complaint. The missing posts are absent from `/feed`,
+   `/posts`, `/published_posts` and `include_hidden=true`, and cannot be read by
+   id either, so naming one with a `post` target does not help.
 
-   **What this means for you:** if you schedule or publish through anything
-   other than this server — Buffer, Hootsuite, Later, Meta's own Business
-   Suite scheduler, your own tooling — those posts and every comment on them
-   are absent from the answer. There is no error. The list is simply shorter.
+   **This matters because of what this README recommends.** A System User token
+   is the one that never expires, and the setup guide points you at it for
+   exactly that reason. It is also the one observed seeing less.
 
-   **The server tells you when it can detect it.** The photos inside a withheld
-   post stay reachable and name the post they belong to, so a `page` sweep reads
-   them, asks whether each named post is readable, and reports the refusals in
-   `notes` with `partial: true`. **The count is a minimum**: a text-only post
-   leaves no photo behind and cannot be detected at all, so "no such note" does
-   not mean "nothing is missing".
+   **What you get is a shorter list and no error.** The server tells you when it
+   can detect it: the photos inside an unreadable post stay reachable and name
+   the post they belong to, so a `page` sweep checks them and reports refusals
+   in `notes` with `partial: true`. **The count is a minimum** — a text-only
+   post leaves no photo behind — so the absence of that note is not a promise
+   that nothing is missing. If posts are missing, try a token granted by a
+   person who administers the Page.
 
-   Comments on **ads** are unaffected: an `ad` or `campaign` target resolves the
-   post through the Marketing API rather than through the Page's feed.
+   The rule Meta is applying here is not established, and an earlier version of
+   this entry named the wrong one: it said a post is not returned to an app
+   other than the one that published it, on a five-for-five correlation between
+   the missing posts and another tool's records. Two things differed between
+   those tokens and only one was tested. Comments on **ads** are unaffected
+   either way: an `ad` or `campaign` target resolves the post through the
+   Marketing API rather than through the Page's feed.
 
 ### What works, but is trusted further than it has been tested
 

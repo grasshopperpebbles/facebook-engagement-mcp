@@ -330,8 +330,8 @@ This is the third piece in a set, and it assumes the first:
   Permissions](./setup-tokens-permissions.md) — app creation, the three-token chain, `MODERATE`, and why a
   comment read with a user token returns an empty array instead of an error. If
   you are setting this up from scratch, start there.
-- [The Posts `/feed` Won't Return: Your Ads' Comments, and Anything Another App
-  Published](./dark-posts.md) — the two reasons a post is missing from a
+- [The Posts `/feed` Won't Return: Your Ads' Comments, and Whatever Your Token
+  Can't See](./dark-posts.md) — the two reasons a post is missing from a
   Page-level sweep: ads run on unpublished posts, and a post published through
   another app is not returned to yours.
 
