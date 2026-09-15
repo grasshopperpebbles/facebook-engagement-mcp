@@ -38,5 +38,25 @@
     ],
     "existsCheck": "python/.venv/bin/facebook-engagement-mcp",
     "env": {}
+  },
+  "go": {
+    "cmd": [
+      "docker",
+      "run",
+      "-i",
+      "--rm",
+      "--add-host=host.docker.internal:host-gateway",
+      "{{ENV}}",
+      "fbe-go:dev"
+    ],
+    "stubHost": "host.docker.internal",
+    "env": {}
+  },
+  "go-native": {
+    "cmd": [
+      "go/bin/facebook-engagement-mcp"
+    ],
+    "existsCheck": "go/bin/facebook-engagement-mcp",
+    "env": {}
   }
 }
