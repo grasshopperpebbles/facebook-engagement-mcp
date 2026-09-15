@@ -896,6 +896,10 @@ The setup above is the resolution to a series of things that went wrong first:
 
 ## Summary
 
+- **When the Explorer smoke test works, install the server next** — paste the
+  long-lived **user** token into
+  [Install and configure](../node/README.md#as-a-claude-desktop-extension-mcpb--non-developers-start-here),
+  not the Page token you used to test comments.
 - A **user access token returns an empty array** for comments. You need a Page
   access token (**User or Page →** your Page). This single fact explains most
   "the API returns nothing" reports.
