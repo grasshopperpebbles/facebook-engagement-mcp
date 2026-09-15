@@ -1,5 +1,5 @@
 ---
-title: "Facebook's /feed Does Not Return Unpublished Posts — So Your Ads' Comments Are Invisible"
+title: "The Posts /feed Won't Return: Your Ads' Comments, and Anything Another App Published"
 date: 2026-09-08
 verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. The ad-resolution chain was run end to end through a real paused ad on 2026-09-08. The second reason a post goes missing — another app published it — was confirmed 2026-09-15 by reading one Page with two Page tokens belonging to different apps and diffing both lists against the publishing tool's own records."
 ---
@@ -10,7 +10,7 @@ verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. 
      code correctly and does not depend on a site being live. -->
 
 
-# Facebook's `/feed` Does Not Return Unpublished Posts — So Your Ads' Comments Are Invisible
+# The Posts `/feed` Won't Return: Your Ads' Comments, and Anything Another App Published
 
 If you run ads on Facebook, the comments you most want to read are the ones you
 cannot get to. They are not on your Page. They are on posts that were never

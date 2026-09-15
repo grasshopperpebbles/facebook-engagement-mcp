@@ -434,8 +434,8 @@ advertising.
 That finding, its reproduction, and the only route that does work — ad →
 creative → `effective_object_story_id` → post — used to live in this article and
 now has its own:
-**[Facebook's /feed Does Not Return Unpublished Posts — So Your Ads' Comments Are
-Invisible](./dark-posts.md)**.
+**[The Posts /feed Won't Return: Your Ads' Comments, and Anything Another App
+Published](./dark-posts.md)**.
 
 **That article now carries a second reason a post goes missing, and it is not
 about ads at all: Facebook does not return a post to an app other than the one
@@ -546,7 +546,7 @@ keep that property — a token in a terminal is a token in your shell history.
 
 ## Related reading
 
-- [Facebook's /feed Does Not Return Unpublished Posts — So Your Ads' Comments Are Invisible](./dark-posts.md)
+- [The Posts /feed Won't Return: Your Ads' Comments, and Anything Another App Published](./dark-posts.md)
   — the companion piece. If you run ads, read it; this configuration alone does
   not reach those comments.
 - [Meta Told Me I Needed a Permission That Died in 2018](./publish-actions-error.md)

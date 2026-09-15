@@ -330,9 +330,10 @@ This is the third piece in a set, and it assumes the first:
   Permissions](./setup-tokens-permissions.md) — app creation, the three-token chain, `MODERATE`, and why a
   comment read with a user token returns an empty array instead of an error. If
   you are setting this up from scratch, start there.
-- [Facebook's `/feed` Does Not Return Unpublished Posts — So Your Ads' Comments
-  Are Invisible](./dark-posts.md) — the finding that ad comments are unreachable by any
-  Page-level sweep, and the ad-resolution route that does reach them.
+- [The Posts `/feed` Won't Return: Your Ads' Comments, and Anything Another App
+  Published](./dark-posts.md) — the two reasons a post is missing from a
+  Page-level sweep: ads run on unpublished posts, and a post published through
+  another app is not returned to yours.
 
 The read-side twin of this article's bug lives in the first one, and it is worth
 knowing about because it fails *silently* rather than loudly: **a comment read
