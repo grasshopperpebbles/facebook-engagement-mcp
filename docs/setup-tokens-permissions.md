@@ -496,10 +496,13 @@ want the longer chain. You can walk it in the browser:
    `me/accounts?fields=id,name,tasks` — you should see the Page and
    `MODERATE` in `tasks` if you will write.
 
+**What you save for the MCP server is the long-lived user token** (step 3), not
+the Page token from step 5. See [What next](#what-next--you-have-a-working-token).
+
 **Do not** select a Page token and then try to read `/me/accounts` — that is
 error 2500 or an empty list. Mint the Page token from the dropdown (or from
 the `access_token` field in a `/me/accounts` response), then use *that* for
-comments.
+comments smoke tests only.
 
 **Optional, for developers** — exchange short-lived for long-lived in a shell
 (needs App ID and App Secret):
@@ -712,6 +715,33 @@ curl -s -H "Authorization: Bearer $PAGE_TOKEN" \
 into the same list. Replies to a specific comment come from that comment's own
 comments edge: `{comment-id}/comments`.
 
+## What next — you have a working token
+
+If comments returned in the Explorer, Meta setup is done. The remaining work is
+installing the MCP server and giving it the right credential.
+
+1. **Keep the long-lived user token**, not the Page token. The server takes a
+   **user** access token (`META_ACCESS_TOKEN`) and exchanges it for Page tokens
+   itself. Use the token from **Access Token Debugger → Extend Access Token**.
+   The Page token was only for smoke-testing `/{post-id}/comments` in the
+   Explorer.
+2. **Install the server.** Prefer the Node `.mcpb` bundle (double-click in
+   Claude Desktop; no terminal): see
+   **[Install and configure](../node/README.md#install-and-configure)**. Python
+   and other languages are documented from the
+   [repository README](../README.md#pick-your-language).
+3. **Paste the long-lived user token** into the install form's **Meta access
+   token** field (or your client's env / config). Leave writes disabled until
+   you intend to reply or hide.
+4. **Ask the model to triage comments** on your Page — for example unanswered
+   threads on the Page, or a specific post. Orientation with no target lists
+   what the token can reach.
+5. **Optional follow-ons:**
+   - Ads / unpublished posts: [dark posts](./dark-posts.md) — a Page sweep will
+     not include them.
+   - Team / no 60-day renewal: [System User token](./system-user-token.md).
+   - Misleading write errors: [publish_actions](./publish-actions-error.md).
+
 ### Hiding and unhiding is one call, not two
 
 This surprised me. There is no hide endpoint and no unhide endpoint. There is one
@@ -889,6 +919,10 @@ The setup above is the resolution to a series of things that went wrong first:
 
 ## Summary
 
+- **When the Explorer smoke test works, install the server next** — paste the
+  long-lived **user** token into
+  [Node install](../node/README.md#install-and-configure), not the Page token
+  you used to test comments.
 - A **user access token returns an empty array** for comments. You need a Page
   access token (**User or Page →** your Page). This single fact explains most
   "the API returns nothing" reports.

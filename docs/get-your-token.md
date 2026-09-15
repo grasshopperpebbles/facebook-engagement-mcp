@@ -89,8 +89,10 @@ The one-hour token has to become a long-lived one (~60 days), and you need a
    **Extend Access Token** (you will need the app secret from App Dashboard →
    App settings → Basic).
 3. Back in the Explorer, open **User or Page** and select your Page under
-   **Page Access Tokens**. That Page token is what the installer needs for
-   comment reads.
+   **Page Access Tokens** only to **test** comment reads (see the full guide).
+   The install form does **not** want that Page token — it wants the
+   **long-lived user token** from step 2 (Extend Access Token). The server
+   exchanges it for Page tokens itself.
 
 Full detail: [the token chain](setup-tokens-permissions.md#get-a-long-lived-user-token-and-then-a-page-token-without-a-terminal).
 
@@ -102,12 +104,18 @@ repeat steps 3 and 4. If your Page lives in a business portfolio there is a
 token that never expires: [the System User
 token](system-user-token.md). It is more setup once, and none ever again.
 
-## 5. Paste it in
+## 5. Install the server and paste the token
 
-Put the long-lived token in the install form's **Meta access token** field. It
-is stored encrypted by Claude Desktop and never leaves your machine.
+You are done with Meta console work when:
 
-You are done. Ask Claude about comments on your Page.
+- Access Token Debugger shows the Page scopes (including
+  `pages_read_user_content`) on the long-lived **user** token
+- `me/accounts` lists your Page
+- A comments call works in the Explorer on the **Page** token (smoke test only)
+
+**Next step:** install [facebook-engagement-mcp (Node)](../node/README.md#install-and-configure) — double-click the `.mcpb` bundle in Claude Desktop, or configure from source — and paste the **long-lived user token** into **Meta access token**. Leave writes off until you need them.
+
+Then ask Claude about comments on your Page (for example: triage unanswered comments on the Page). If ads matter, read [dark posts](dark-posts.md) before assuming a Page sweep is complete.
 
 ## If something does not work
 
