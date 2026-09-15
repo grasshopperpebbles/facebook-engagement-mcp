@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { explainGraphError } from "../src/outcomes/errors.js"
+import { explainGraphError, isAbsentCommentsEdge } from "../src/outcomes/errors.js"
 import { MetaApiError } from "../src/vendor/meta-client/index.js"
 
 describe("expired token", () => {
@@ -74,5 +74,20 @@ describe("permission refusals keep Meta's own words", () => {
     })
 
     expect(explainGraphError(refused, { operation: "reply" })).toMatch(/pages_manage_engagement/)
+  })
+})
+
+describe("absent comments edge (#100)", () => {
+  it("recognises Meta's unsupported-get shape as no comments, not a hard failure", () => {
+    const absent = new MetaApiError({
+      message:
+        "Unsupported get request. Object with ID 'x' does not exist, cannot be loaded due to missing permissions, or does not support this operation",
+      status: 400,
+      code: 100,
+      subcode: 33,
+    })
+
+    expect(isAbsentCommentsEdge(absent)).toBe(true)
+    expect(isAbsentCommentsEdge(new MetaApiError({ message: "boom", code: 1 }))).toBe(false)
   })
 })

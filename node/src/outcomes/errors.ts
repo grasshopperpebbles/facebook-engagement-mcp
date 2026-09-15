@@ -8,6 +8,21 @@ const PERMISSION_BY_OPERATION: Record<string, string> = {
 }
 
 /**
+ * Meta's (#100) "Unsupported get request … does not exist … or does not
+ * support this operation" on a comments edge. Live shape for ad-backed posts
+ * that have no readable comments object — Graph answers with an error rather
+ * than `{"data":[]}`. Treat as "no comments", not a permission failure.
+ */
+export function isAbsentCommentsEdge(error: unknown): boolean {
+  if (!(error instanceof MetaApiError)) return false
+  if (error.code === 100) return true
+  return (
+    /unsupported get request/i.test(error.message) &&
+    /does not exist|does not support this operation|missing permissions/i.test(error.message)
+  )
+}
+
+/**
  * Turn a Graph failure into something the caller can act on.
  *
  * A bare "(#200) Permissions error" is the most common failure this server's

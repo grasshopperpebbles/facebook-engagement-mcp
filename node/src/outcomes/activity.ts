@@ -19,7 +19,7 @@ import type {
   PagesClient,
 } from "../vendor/meta-client/index.js"
 import { resolveAdPosts } from "./ad-posts.js"
-import { explainGraphError } from "./errors.js"
+import { explainGraphError, isAbsentCommentsEdge } from "./errors.js"
 import { type Counts, countThreads, type Group, type GroupBy, groupThreads } from "./grouping.js"
 import {
   assembleThreads,
@@ -617,7 +617,15 @@ export async function runCommentActivity(
         threads.push(...assembleThreads({ post, comments, repliesByCommentId }))
       } catch (cause) {
         // One failing post must not fail the whole answer — it becomes a
-        // labelled gap instead.
+        // labelled gap instead. Meta's (#100) "Unsupported get request /
+        // does not exist / does not support this operation" on the comments
+        // edge is the live shape for "this post has no readable comments"
+        // (common on ad-backed story ids), not a token failure — say that,
+        // or Claude reports an error after a successful read of sibling posts.
+        if (isAbsentCommentsEdge(cause)) {
+          notes.push(`Post ${post.id} has no comments.`)
+          continue
+        }
         partial = true
         notes.push(
           `Comments for post ${post.id} could not be read: ` +

@@ -289,6 +289,45 @@ describe("runCommentActivity", () => {
     expect((result as { notes: string[] }).notes.join(" ")).toContain("pg1_p2")
   })
 
+  // Observed with two ad-backed posts: one returned comments, the other got
+  // Meta's (#100) "Unsupported get request / does not exist / does not support
+  // this operation" on the comments edge. That is Meta's way of saying there
+  // are no readable comments on that object — not a token failure. Surfacing
+  // it via explainGraphError made Claude report an error after a successful
+  // read of the other post.
+  it("treats Meta's unsupported-comments-edge as no comments, not a read failure", async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) return new Response(fixture("feed"), { status: 200 })
+      if (pathname.endsWith("/pg1_p2/comments")) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              message:
+                "Unsupported get request. Object with ID 'pg1_p2' does not exist, cannot be loaded due to missing permissions, or does not support this operation",
+              code: 100,
+              error_subcode: 33,
+            },
+          }),
+          { status: 400 },
+        )
+      }
+      return new Response(fixture("comments-p1"), { status: 200 })
+    })
+    const result = await runCommentActivity(deps(fetchImpl), { page: "pg1", filter: "all" })
+
+    expect(result).not.toHaveProperty("error")
+    const activity = result as { partial: boolean; notes: string[]; groups: unknown[] }
+    expect(activity.notes.join(" ")).toMatch(/no comments/i)
+    expect(activity.notes.join(" ")).toContain("pg1_p2")
+    expect(activity.notes.join(" ")).not.toMatch(/could not be read/i)
+    expect(activity.groups.length).toBeGreaterThan(0)
+  })
+
   it("explains a permission failure instead of passing Graph's message through", async () => {
     const fetchImpl = vi.fn(
       async () =>

@@ -2,6 +2,17 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.15] — 2026-09-15
+
+### Fixed
+
+- **Meta's `(#100)` "Unsupported get request / does not exist / does not
+  support this operation" on a post's comments edge is treated as "no
+  comments"** for that post, not as a read failure. Ad sweeps often hit one
+  story id with comments and another where Graph errors instead of returning
+  `{"data":[]}`; the old wording made Claude report an error after a successful
+  read of the sibling post.
+
 ## [0.1.14] — 2026-09-15
 
 ### Changed
