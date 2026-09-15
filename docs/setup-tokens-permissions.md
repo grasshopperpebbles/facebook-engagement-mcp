@@ -497,7 +497,7 @@ want the longer chain. You can walk it in the browser:
    `MODERATE` in `tasks` if you will write.
 
 **What you save for the MCP server is the long-lived user token** (step 3), not
-the Page token from step 5. See [What next](#what-next--you-have-a-working-token).
+the Page token from step 5. See [What next](#what-next).
 
 **Do not** select a Page token and then try to read `/me/accounts` — that is
 error 2500 or an empty list. Mint the Page token from the dropdown (or from
@@ -715,32 +715,9 @@ curl -s -H "Authorization: Bearer $PAGE_TOKEN" \
 into the same list. Replies to a specific comment come from that comment's own
 comments edge: `{comment-id}/comments`.
 
-## What next — you have a working token
-
-If comments returned in the Explorer, Meta setup is done. The remaining work is
-installing the MCP server and giving it the right credential.
-
-1. **Keep the long-lived user token**, not the Page token. The server takes a
-   **user** access token (`META_ACCESS_TOKEN`) and exchanges it for Page tokens
-   itself. Use the token from **Access Token Debugger → Extend Access Token**.
-   The Page token was only for smoke-testing `/{post-id}/comments` in the
-   Explorer.
-2. **Install the server.** Prefer the Node `.mcpb` bundle (double-click in
-   Claude Desktop; no terminal): see
-   **[Install and configure](../node/README.md#install-and-configure)**. Python
-   and other languages are documented from the
-   [repository README](../README.md#pick-your-language).
-3. **Paste the long-lived user token** into the install form's **Meta access
-   token** field (or your client's env / config). Leave writes disabled until
-   you intend to reply or hide.
-4. **Ask the model to triage comments** on your Page — for example unanswered
-   threads on the Page, or a specific post. Orientation with no target lists
-   what the token can reach.
-5. **Optional follow-ons:**
-   - Ads / unpublished posts: [dark posts](./dark-posts.md) — a Page sweep will
-     not include them.
-   - Team / no 60-day renewal: [System User token](./system-user-token.md).
-   - Misleading write errors: [publish_actions](./publish-actions-error.md).
+When that call returns comments, Meta setup is finished — jump to
+[What next](#what-next) at the end of this page (install the server and paste
+the long-lived **user** token).
 
 ### Hiding and unhiding is one call, not two
 
@@ -919,10 +896,6 @@ The setup above is the resolution to a series of things that went wrong first:
 
 ## Summary
 
-- **When the Explorer smoke test works, install the server next** — paste the
-  long-lived **user** token into
-  [Node install](../node/README.md#install-and-configure), not the Page token
-  you used to test comments.
 - A **user access token returns an empty array** for comments. You need a Page
   access token (**User or Page →** your Page). This single fact explains most
   "the API returns nothing" reports.
@@ -971,6 +944,32 @@ The setup above is the resolution to a series of things that went wrong first:
 - **"All current and future Pages" is a snapshot, not a subscription.** If a
   Page is missing from `/me/accounts`, uninstall the app in the Graph API
   Explorer and re-authorise before assuming an ownership problem.
+
+## What next
+
+If the Explorer smoke test returned comments, Meta configuration is done. Do
+this next:
+
+1. **Keep the long-lived user token** from **Access Token Debugger → Extend
+   Access Token** — not the Page token you used to test comments. The server
+   field is `META_ACCESS_TOKEN`; it exchanges the user token for Page tokens
+   itself.
+2. **Install facebook-engagement-mcp.** Prefer the Node `.mcpb` bundle
+   (double-click in Claude Desktop, no terminal):
+   **[Install and configure](../node/README.md#install-and-configure)**. Other
+   languages: [repository README](../README.md#pick-your-language).
+3. **Paste that long-lived user token** into **Meta access token** on the
+   install form (or your client's env / config). Leave writes off until you
+   intend to reply or hide.
+4. **Ask the model to triage comments** on your Page (unanswered threads, a
+   specific post, or orientation with no target to list what the token can
+   reach).
+
+Still useful after that:
+
+- Ads / unpublished posts: [dark posts](./dark-posts.md)
+- No 60-day renewal for a team: [System User token](./system-user-token.md)
+- Write refused as `publish_actions`: [that error](./publish-actions-error.md)
 
 ---
 
