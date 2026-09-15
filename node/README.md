@@ -115,6 +115,30 @@ You do **not** need git, a terminal, or Node.
 That is the whole non-developer path. Stop here unless you are developing
 the server.
 
+#### If Claude does not show the extension (especially Windows)
+
+Distinguish two failures:
+
+| What you mean | Where to look |
+|---|---|
+| Extension never appears under **Settings → Extensions** | Install did not register (common on Windows) |
+| Extension is listed / enabled, but Claude says it has no tools | Config or Desktop binding — restart; open the extension and confirm the Meta token is saved |
+
+**When it never appears after Install:**
+
+1. **Fully quit Claude Desktop** (tray icon → Quit, not only close the window), then reopen. Check **Settings → Extensions** again for **Facebook Page Comments**.
+2. Confirm they used **Settings → Extensions → Advanced settings → Install Extension…** (not “Open with” from Explorer).
+3. In a new chat, click **+** → **Connectors** and see whether the extension is listed there.
+4. Re-download the `.mcpb` from
+   [Releases](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases)
+   and install again (corrupt or partial downloads happen).
+5. Update Claude Desktop to the latest version, then retry.
+6. On **Team / Enterprise**, an admin may have disabled desktop extensions or blocked unsigned ones — ask whoever manages the Claude org.
+7. If install still never sticks, this is often a **Claude Desktop on Windows** bug (package stages but never registers). Check whether folders named `dxt-install-*` keep appearing under Claude’s AppData while nothing shows in Extensions. Workarounds people use: fully quit → install once more → restart; or fall back to a developer installing via
+   [from source](#from-source--developers-only) / `claude_desktop_config.json` (needs Node).
+
+**When it appears but tools are missing:** open the extension’s settings, confirm **Meta access token** is filled, leave writes off for a first test, fully quit and relaunch, then ask again in a **new** chat.
+
 The two install fields come from `user_config` in
 [`mcpb/manifest.json`](./mcpb/manifest.json). Claude Desktop encrypts the
 token at rest.
