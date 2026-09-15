@@ -607,8 +607,10 @@ curl -s -H "Authorization: Bearer $USER_TOKEN" \
 With a **Page** token selected in Graph API Explorer (**User or Page** → your
 Page name):
 
-1. Put a real post id in the path (the number from the post URL, often after
-   the Page id — or copy it from a `/{page-id}/feed` response).
+1. Put a real post id in the path. Prefer an id copied from a feed response
+   (`{page-id}/feed` or `{page-id}/posts` while on the Page token) — usually
+   shaped like `{page-id}_{post-id}`. The trailing number alone from a
+   facebook.com URL is unreliable here.
 2. Submit:
 
    ```text
@@ -618,11 +620,45 @@ Page name):
 3. Leave method on **GET** → **Submit**.
 
 You should see comments in `data`. Empty `data` with a user token still selected
-means you are on the wrong token — switch to the Page.
+means you are on the wrong token — switch to the Page. That failure is silent
+(`{"data": []}`), not a permissions error.
 
-`filter=toplevel` returns top-level comments; `filter=stream` flattens replies
-into the same list. Replies to a specific comment come from that comment's own
-comments edge: `{comment-id}/comments`.
+### Error: missing permissions on `/{post-id}/comments`
+
+A permissions refusal (often `(#200)` or `(#10)`, wording like *permission* /
+*permissions*) is **not** the empty-array trap. Graph accepted a Page-shaped
+call and rejected the scopes (or the Page grant behind them).
+
+Fix, in order:
+
+1. **Confirm the Explorer is on the Page.** **User or Page** must show your
+   Page name, not "User Token". A user token usually returns empty `data` for
+   comments; a Page token with bad scopes returns a permissions error instead.
+2. **Debug the Page token.** Open **Tools → Access Token Debugger**, paste the
+   token from the Explorer (copy the Access Token field while the Page is
+   selected), click **Debug**. The Scopes list must include
+   **`pages_read_user_content`**. Without it, comment reads on other people's
+   comments will not work. `pages_read_engagement` alone is not enough.
+3. **Remint the user token, then take a fresh Page token.** Page tokens are a
+   snapshot of the user token at exchange time. Adding `pages_read_user_content`
+   on the app (or ticking it in a stale Explorer session) does not rewrite a
+   Page token you already selected.
+   1. **User or Page → Get User Access Token**.
+   2. In the permissions dialog, tick **`pages_read_user_content`** (and the
+      other Page scopes you need — including `business_management` if
+      `/me/accounts` was empty before).
+   3. Complete consent with **Edit settings** (not Continue) and tick the Page.
+   4. **User or Page →** your Page under **Page Access Tokens** again.
+   5. Retry the comments call.
+4. **Check granular targets if the scope is present but the call still fails.**
+   In the Debugger output, `pages_read_user_content` may list `target_ids`. If
+   your Page's id is not among them, the permission exists on the token but not
+   for that Page — uninstall the app, **Get User Access Token** again, and
+   explicitly opt that Page in.
+5. **Confirm the post id.** Submit `{page-id}/feed?fields=id,message` on the
+   Page token, copy an `id` from `data`, and use that exact value in
+   `{id}/comments?...`. Wrong or partial ids produce confusing refusals that
+   look like permission problems.
 
 **Optional, for developers:**
 
@@ -632,6 +668,10 @@ curl -s -H "Authorization: Bearer $PAGE_TOKEN" \
 ?fields=id,message,created_time,from,like_count,comment_count,is_hidden,can_comment,can_hide,permalink_url,parent\
 &filter=toplevel&order=chronological"
 ```
+
+`filter=toplevel` returns top-level comments; `filter=stream` flattens replies
+into the same list. Replies to a specific comment come from that comment's own
+comments edge: `{comment-id}/comments`.
 
 ### Hiding and unhiding is one call, not two
 
@@ -811,8 +851,13 @@ The setup above is the resolution to a series of things that went wrong first:
 ## Summary
 
 - A **user access token returns an empty array** for comments. You need a Page
-  access token from `/me/accounts`. This single fact explains most "the API
-  returns nothing" reports.
+  access token (**User or Page →** your Page). This single fact explains most
+  "the API returns nothing" reports.
+- A **permissions error** on `/{post-id}/comments` usually means the Page token
+  was minted before `pages_read_user_content` was on the user token (or the Page
+  is missing from that scope's `target_ids`). Remint **Get User Access Token**
+  with that scope, re-select the Page, retry. Confirm scopes in **Access Token
+  Debugger**.
 - **Error 2500** (`An active access token must be used to query information
   about the current user`) on `/me/accounts` means the Explorer has no usable
   **user** token — empty field, Page selected in User or Page, or expired.
