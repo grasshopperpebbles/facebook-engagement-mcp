@@ -1,0 +1,12 @@
+{
+  "node": {
+    "cmd": ["node", "node/dist/index.js"],
+    "existsCheck": "node/dist/index.js",
+    "env": { "FACEBOOK_ENGAGEMENT_ENABLE_WRITES": "false" }
+  },
+  "gpp-mcp-page-engagement": {
+    "cmd": ["node", "../gpp-mcp/servers/page-engagement/dist/index.js"],
+    "existsCheck": "../gpp-mcp/servers/page-engagement/dist/index.js",
+    "env": { "PAGE_ENGAGEMENT_ENABLE_WRITES": "false" }
+  }
+}

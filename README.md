@@ -47,7 +47,7 @@ it.
 node/              the TypeScript implementation and the .mcpb bundle
 docs/              Meta setup, tokens and errors — shared by every language
 fixtures/          recorded Graph responses — shared by every language
-conformance/       the suite every implementation must pass (not built yet)
+conformance/       the suite every implementation must pass
 ```
 
 **`docs/` and `fixtures/` are deliberately outside `node/`.** Neither is about
@@ -61,9 +61,8 @@ TypeScript client is vendored from a private monorepo by script, which works onl
 because both ends are TypeScript; nothing can vendor into Python. So what holds
 the implementations equivalent is not copied code but a shared suite of cases,
 each one encoding a rule where the obvious implementation is the wrong one. Every
-rule in it is a bug this project actually shipped. See
-`docs/superpowers/specs/2026-09-15-folder-per-language-and-conformance-design.md`
-in the monorepo for the design.
+rule in it is a bug this project actually shipped, and every case has been
+watched failing. See [`conformance/README.md`](./conformance/README.md).
 
 ## Licence
 
