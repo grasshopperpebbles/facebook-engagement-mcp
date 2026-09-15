@@ -1,7 +1,7 @@
 ---
 title: "Facebook's /feed Does Not Return Unpublished Posts — So Your Ads' Comments Are Invisible"
 date: 2026-09-08
-verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. The ad-resolution chain was run end to end through a real paused ad on 2026-09-08."
+verified: "Reproduced live 2026-09-03 and again 2026-09-08 on a different Page. The ad-resolution chain was run end to end through a real paused ad on 2026-09-08. The second reason a post goes missing — another app published it — was confirmed 2026-09-15 by reading one Page with two Page tokens belonging to different apps and diffing both lists against the publishing tool's own records."
 ---
 
 <!-- Source of truth for this article is the broadkast content repo,
@@ -288,6 +288,101 @@ comment requires the ad to actually deliver. So triage of a stranger's comment,
 on a dark post, remains untested. I would rather say that than imply a
 completeness I have not earned.
 
+## The second reason a post is missing: another app published it
+
+Everything above is about posts that were never published. There is a second
+way for a post to be absent from `/feed`, it has nothing to do with ads, and it
+is worse, because the post is *on your Page and visible to anyone looking at
+it*.
+
+**Facebook does not return a post to an app other than the one that published
+it.**
+
+I found this while checking something else. The Page had a multi-image post on
+it, published a few days earlier by a different tool of mine. It was there in
+the browser, with comments on it. It was not in `/feed`. It was not in `/posts`
+or `/published_posts` either, and `include_hidden=true` changed nothing — the
+same four-edge sweep from the top of this article, and the same answer.
+
+The obvious suspicions were all wrong. Not the API version: v24.0 and v25.0
+returned identical lists. Not the edge. Not the post's format — a plain text
+post published by the same tool was equally absent, and a text post I typed into
+the Page by hand came back immediately.
+
+What settled it was reading the same Page with **two Page tokens belonging to
+different apps**, and checking both lists against the publishing tool's own
+database:
+
+| Post | How it was published | App A's token | App B's token |
+|---|---|---|---|
+| text post | by hand, in the browser | yes | yes |
+| album, 5 photos | through app A | **yes** | **no** |
+| text post | through app A | **yes** | **no** |
+| cover photo | by hand | yes | yes |
+| profile picture | by hand | yes | yes |
+
+Five for five. The two posts app B could not see are exactly the two rows in app
+A's records; the three it could see are exactly the three that are not.
+
+**It is not merely missing from the sweep.** Naming the post directly does not
+help either — reading it by id gives `(#10)`, and its comments edge gives
+`(#100)` with subcode 33. The post is unreachable, not just unlisted, so the
+`post` target is no escape hatch.
+
+### What this costs you
+
+If you schedule or publish through anything other than the tool doing the
+reading — Buffer, Hootsuite, Later, Meta's own Business Suite scheduler, your
+own code — then those posts, **and every comment on them**, are absent from what
+you get back.
+
+There is no error. The list is simply shorter. For a tool whose job is finding
+the comments that need a reply, that is the worst available failure: a confident
+answer, missing the half you care about, with nothing to indicate it.
+
+### How to detect it
+
+The posts hide. Their **photos do not**.
+
+`/{page-id}/photos?type=uploaded` returns the images inside those posts, and
+each photo carries `page_story_id` — the `{page-id}_{post-id}` of the post it
+belongs to. So any story id the photos know and your sweep never saw is a
+candidate.
+
+**A candidate, not a finding.** The first version of this check in my own
+tooling treated "absent from the feed" as "unreadable", and it was wrong on the
+first Page it ran against: a Page's cover photo names a `page_story_id` that
+`/feed` does not list the post under. It looked withheld, it read back with a
+plain `200`, and because there happened to be exactly two genuinely missing
+posts, **the total came out right for the wrong reason**. A check that agrees
+with the truth by accident is worse than one that disagrees, because nothing
+will ever make it complain.
+
+So probe each candidate and count only the refusals:
+
+```
+GET /{page-id}/photos?type=uploaded&fields=id,page_story_id
+  → collect distinct page_story_id
+  → subtract the post ids your sweep returned
+  → for each remaining id: GET /{id}/comments?limit=1
+  → count only the ones that refuse
+```
+
+**The number you get is a floor.** A text-only post leaves no photo behind and
+cannot be detected at all — one of the two missing posts in the table above is
+invisible to this check. "No posts detected" does not mean "nothing is missing",
+and any tool reporting this should say so rather than implying the sweep was
+complete.
+
+### What I am not claiming
+
+I have not established the mechanism. "A post belongs to the app that published
+it" describes what five observations did; it is not a citation, and I could not
+find this documented anywhere. What I am confident of is the behaviour, because
+it was reproduced deliberately with two tokens rather than noticed once.
+
+If you know the rule Meta is actually applying here, the Page comments are open.
+
 ## Reader downloads
 
 Two scripts, both of which answer questions this article raises:
@@ -340,6 +435,15 @@ keep that property — a token in a terminal is a token in your shell history.
 - **Some ad formats create no Page post at all** — dynamic creative built
   entirely in Ads Manager. Those comments are unreachable by any Page-based
   route, and no workaround changes that.
+- **A post published through another app is also absent from `/feed`**, and from
+  `/posts`, `/published_posts` and `include_hidden=true` — and cannot be read by
+  id either. Confirmed on 2026-09-15 with two Page tokens on one Page, five
+  posts for five. If you schedule through another tool, those posts and their
+  comments are missing with no error.
+- **You can detect most of it**: the photos inside a withheld post stay
+  reachable and name their post in `page_story_id`. Probe each named post you
+  did not sweep and count the refusals — not the absences, which is a different
+  and wrong question. A text-only post leaves no trace and cannot be detected.
 - **Verified end to end on 2026-09-08**, against a real ad on a real dark post.
 
 ---
