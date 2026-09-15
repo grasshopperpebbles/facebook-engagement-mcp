@@ -138,13 +138,24 @@ one that is missing now **fails** instead of skipping.
 sibling repository CI cannot check out, so it skips and says so on its own line
 rather than the run quietly testing three things and looking like four.
 
-**One thing here is not yet verified and is worth knowing.** The containerised
-entry reaches the stub at `host.docker.internal`, created on Linux by
-`--add-host=host.docker.internal:host-gateway`. That has been watched working on
-Docker Desktop; it has **not** been watched on a Linux CI runner. If it fails
-there, the failure is loud — a connection error on every case, never a silent
-pass — and the Linux fix is `--network host`, which lets the container reach the
-host's loopback directly.
+**The containerised entry works on a Linux runner — watched, not assumed.** It
+reaches the stub at `host.docker.internal`, which on Linux exists only because of
+the `--add-host=host.docker.internal:host-gateway` the runner passes. This was
+written here as *unverified* when the workflow was added, on the grounds it had
+only ever been watched on Docker Desktop; the first CI run
+([`ab4a738`](https://github.com/grasshopperpebbles/facebook-engagement-mcp/actions/runs/34924931763))
+settled it green. The note is replaced rather than deleted, because if this ever
+breaks the Linux fallback is `--network host` and that is easier to find here
+than to rediscover.
+
+**What a green suite step does and does not prove.** Workflow logs need
+authentication, so the printed `12/12 passed` is not readable from outside — the
+evidence is the exit code. That is worth something only because of the runner's
+own guards: zero implementations run is a failure, a named implementation that is
+absent is a failure, and no cases matched is a failure. All three were
+mutation-proved before the workflow was written. Without them a green step would
+be compatible with having tested nothing, which is the shape this project
+distrusts most.
 
 ## Adding a case
 
