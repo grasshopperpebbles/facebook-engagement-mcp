@@ -158,6 +158,21 @@ func (t *Transport) authHeaders(ctx context.Context) (map[string]string, error) 
 	}, nil
 }
 
+// currentToken resolves the token this transport would send.
+//
+// Exists for /debug_token alone, which inspects a token passed as a VALUE and
+// accepts it no other way. Nothing else may call it: the point of keeping the
+// token inside the transport is that no caller has to hold it.
+func (t *Transport) currentToken(ctx context.Context) (string, error) {
+	if t.tokenFunc != nil {
+		return t.tokenFunc(ctx)
+	}
+	if t.token == "" {
+		return "", fmt.Errorf("a Meta access token is required")
+	}
+	return t.token, nil
+}
+
 // toError maps a non-2xx response to a MetaAPIError, without the token.
 func toError(status int, body []byte) *MetaAPIError {
 	err := &MetaAPIError{
