@@ -62,26 +62,34 @@ export function triageThreads(
     //
     // This branch used to read `replies.length > 0 ? "answered" : "needs_reply"`
     // — "somebody replied, so it is handled" — and that inverts the product's
-    // answer once T-38 is taken seriously. Graph withholds `from` for a comment
-    // written by a PERSON and returns it for one written by a PAGE (confirmed
-    // live 2026-09-15 across three people and three Pages, including a person
-    // with no role on the Page and no connection to the app). The Page's own
-    // comments are therefore the only reliable source of an author id in a
-    // batch — so a batch with NO authored comment is a batch in which the Page
-    // has not replied to anything.
+    // answer: nothing here can tell whether the somebody was the Page.
     //
-    // Which makes `needs_reply` here the accurate answer rather than a cautious
-    // one: person asks, another person answers, and the Page has still never
-    // spoken. The old reading reported that as handled, and it did so exactly
-    // when the Page was behind on everything — the situation this tool exists
-    // for.
+    // **The reason recorded here was wrong for a day, and the wrong version is
+    // kept because the shape of the error is the useful part.** It read: Graph
+    // withholds `from` for a comment written by a PERSON and returns it for one
+    // written by a PAGE, confirmed live across three people and three Pages —
+    // therefore a batch with no authored comment is one in which the Page has
+    // replied to nothing, and `needs_reply` is the ACCURATE answer rather than
+    // a cautious one. Every observation in that sample shared one uncontrolled
+    // variable: the token. Hours later a personally-granted token for the same
+    // app returned `from` for the same person's same comments (T-42). Author
+    // identity is not what decides it, and the cause is not established.
     //
-    // The residual assumption is named on purpose: this leans on the Page
-    // always carrying `from`. That is 3-for-3 observed and structurally likely,
-    // being the token's own identity, but it is still a claim about someone
-    // else's system. If it ever fails, this mislabels an answered thread as
-    // needing a reply — the harmless direction, and the one activity.ts's
-    // invariant asks for.
+    // What the branch rests on now does not need the cause. With no author
+    // anywhere in the batch, no thread can be shown to have ended with the
+    // Page, so none can be called answered. `needs_reply` for all of them is
+    // the over-surfacing direction activity.ts's invariant demands.
+    //
+    // Say plainly what that costs, since the old comment claimed the opposite:
+    // this is a CAUTIOUS answer, not an accurate one. Some of these threads may
+    // be handled and are being reported as waiting. That is the harmless
+    // direction — the reverse is the defect T-11, T-36 and T-39 each fixed, and
+    // it is the one this tool exists to prevent.
+    //
+    // Option (b) from T-39 stays rejected on the same ground as before: marking
+    // these `unknown` reads as the careful choice, and `applyFilter` matches
+    // exact status while `needs_reply` is the default filter, so every waiting
+    // customer would drop silently out of the default view.
     if (pageId !== undefined) return { ...thread, status: "needs_reply" }
 
     // No Page id at all: nothing here can identify anyone, and "somebody

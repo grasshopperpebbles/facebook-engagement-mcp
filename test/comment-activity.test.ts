@@ -893,3 +893,97 @@ describe("threads deeper than two levels", () => {
     expect(JSON.stringify(result)).toContain("still waiting")
   })
 })
+
+describe("the notes must not name a cause for missing authors (T-45)", () => {
+  /**
+   * A comment carrying no `from`, which is the shape that produces these notes.
+   */
+  const authorless = (id: string, createdTime: string, commentCount = 0) => ({
+    id,
+    message: "hello?",
+    created_time: createdTime,
+    like_count: 0,
+    comment_count: commentCount,
+    is_hidden: false,
+    can_comment: true,
+    can_hide: true,
+    permalink_url: `https://www.facebook.com/${id}`,
+  })
+
+  const noAuthorFetch = () =>
+    vi.fn(async (url: string) => {
+      const { pathname, searchParams } = new URL(url)
+      if (pathname.endsWith("/me/accounts")) {
+        const wantsToken = searchParams.get("fields")?.includes("access_token")
+        return new Response(fixture(wantsToken ? "page-credentials" : "pages"), { status: 200 })
+      }
+      if (pathname.endsWith("/feed")) {
+        return new Response(
+          JSON.stringify({
+            data: [{ id: "pg1_p1", message: "post", is_published: true }],
+          }),
+          { status: 200 },
+        )
+      }
+      if (pathname.endsWith("/pg1_p1/comments")) {
+        return new Response(
+          JSON.stringify({
+            data: [
+              authorless("pg1_p1_c1", "2026-09-15T10:00:00+0000", 1),
+              authorless("pg1_p1_c2", "2026-09-15T11:00:00+0000"),
+            ],
+          }),
+          { status: 200 },
+        )
+      }
+      if (pathname.endsWith("/pg1_p1_c1/comments")) {
+        return new Response(
+          JSON.stringify({ data: [authorless("pg1_p1_c1_r1", "2026-09-15T10:30:00+0000")] }),
+          { status: 200 },
+        )
+      }
+      return new Response(JSON.stringify({ data: [] }), { status: 200 })
+    })
+
+  /**
+   * Claims this note is not allowed to make, each of which it made until
+   * 2026-09-15.
+   *
+   * **This test exists because mutation proved nothing else could object.**
+   * Replacing the note's text with `"MUTATION XXXXX"` left all 244 tests green,
+   * which is exactly how a user-facing string kept asserting a cause for a day
+   * after that cause was overturned. A string nobody asserts is a string nobody
+   * corrects.
+   *
+   * It is written as forbidden phrases rather than an expected wording on
+   * purpose: the wording should stay free to improve, and what must not come
+   * back is the *claim*. Two of these are the overturned T-38 reading — that
+   * Facebook keys `from` on whether a Page or a person wrote the comment — and
+   * the third is the deduction T-39 drew from it, that a batch with no author
+   * proves the Page has replied to nothing. T-42 showed the credential is what
+   * varied, and the cause is still not established, so the honest note names
+   * none.
+   */
+  const FORBIDDEN = [
+    /written by a person/i,
+    /withholds it for comments/i,
+    /the Page has not replied to anything/i,
+  ]
+
+  it("explains the no-author case without claiming why the authors are missing", async () => {
+    const result = (await runCommentActivity(deps(noAuthorFetch()), {
+      page: "pg1",
+      filter: "all",
+    })) as { notes: string[] }
+    const notes = result.notes.join(" ")
+
+    // The case must still be explained. Silence here would pass every
+    // forbidden-phrase check below and tell the user nothing.
+    expect(notes).toMatch(/no comment in this batch carried an author/i)
+    // And it must admit the cost, since this is the cautious answer, not the
+    // accurate one it was shipped as.
+    expect(notes).toMatch(/over-report|already be handled/i)
+
+    for (const claim of FORBIDDEN) expect(notes).not.toMatch(claim)
+  })
+})

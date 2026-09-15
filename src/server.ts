@@ -38,7 +38,7 @@ export async function asToolResult(
 }
 
 export const SERVER_NAME = "facebook-engagement-mcp"
-export const SERVER_VERSION = "0.1.12"
+export const SERVER_VERSION = "0.1.13"
 
 /**
  * Ask the user to confirm a publish.

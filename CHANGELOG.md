@@ -2,6 +2,42 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
+## [0.1.13] — 2026-09-15
+
+### Fixed
+
+- **The reason given for missing comment authors was wrong, in two strings the
+  user reads.** When no comment in a batch carried an author, the response said
+  *"the Page has not replied to anything here: Facebook returns author
+  information for comments written by a Page and withholds it for comments
+  written by a person."* Neither half survives. The second was overturned within
+  0.1.12's own release day — the same person's same comments came back
+  attributed through a personally-granted token and anonymous through a Business
+  System User token for the same app, so the **credential** decides it, not who
+  wrote the comment — and the first was only ever a deduction from the second.
+
+  The note now says what is actually known: no author anywhere means the Page
+  cannot be identified in any thread, so none can be shown as answered, and
+  listing them all as needing a reply **may over-report**. The companion note on
+  individual unauthored threads changed the same way.
+
+- **`README.md` §4 carried the same claim as a published limitation**, headed
+  *"Facebook tells you who a Page is and will not tell you who a person is."*
+  Rewritten around the credential, with the old cause kept beside it rather than
+  deleted.
+
+### Unchanged
+
+- **No triage behaviour changed, and that is the finding.** Every affected
+  thread was and still is `needs_reply`; every test asserts what it asserted
+  before. What was wrong was the *justification* — 0.1.9 called this the
+  accurate answer because its premise ruled out any thread being answered, and
+  without that premise it is the cautious answer instead. The behaviour outlived
+  the reason it shipped for.
+
+  The reasoning that replaced it deliberately does not name a cause. The 0.1.10
+  and 0.1.11 entries below record what naming an unestablished one costs.
+
 ## [0.1.12] — 2026-09-15
 
 ### Added

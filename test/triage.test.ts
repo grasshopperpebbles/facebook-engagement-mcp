@@ -140,13 +140,16 @@ describe("triageThreads with author identity", () => {
 
 describe("triageThreads without author identity", () => {
   it("refuses to call anything answered when the Page id is known (T-39)", () => {
-    // This asserted `answered` until 2026-09-15, and that was the defect.
-    // Graph returns `from` for a comment written by a Page and withholds it for
-    // one written by a person (T-38), so the Page's own comments are the only
-    // dependable author ids in a batch — and a batch with none is a batch where
-    // the Page has replied to nothing. Person asks, person answers, Page has
-    // still never spoken. `needs_reply` is the accurate answer here, not the
-    // cautious one.
+    // This asserted `answered` until 2026-09-15, and that was the defect: with
+    // no author anywhere, nothing can show that the somebody who replied was
+    // the Page, so nothing here can be called answered.
+    //
+    // The reason first written here was that Graph returns `from` for a Page
+    // and withholds it for a person (T-38), making `needs_reply` the ACCURATE
+    // answer. T-42 overturned that — the token was the variable — so this is
+    // the cautious answer instead, and may over-report a handled thread. The
+    // assertion is unchanged, and that is the point: the behaviour survived the
+    // premise it was justified by.
     const { threads, basis } = triageThreads([thread({ id: "c1" }, [{ id: "r1" }])], "pg1")
 
     expect(basis).toBe("reply_count")
@@ -155,11 +158,13 @@ describe("triageThreads without author identity", () => {
 
   it("does not report a waiting customer as handled when only people spoke (T-39)", () => {
     // The shape this fix exists for, written the way it actually arrives: two
-    // people talking to each other under a Page post, the Page absent. Neither
-    // comment carries an author, because neither was written by a Page. Before
-    // T-39 this came back `answered` — T-11's inversion by a third route, and
-    // it arrived exactly when the Page was behind on everything, which is the
-    // case the tool exists for.
+    // people talking to each other under a Page post, the Page absent, and no
+    // comment carrying an author. Before T-39 this came back `answered` —
+    // T-11's inversion by a third route, and it arrived exactly when the Page
+    // was behind on everything, which is the case the tool exists for.
+    //
+    // Why the authors are absent is not settled (T-42); that they are absent is
+    // enough, because it leaves nothing to identify the Page with.
     const { threads } = triageThreads(
       [
         thread({ id: "c1", createdTime: "2026-09-15T00:00:00+0000" }, [

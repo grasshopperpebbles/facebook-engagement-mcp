@@ -797,29 +797,40 @@ something not fully tested.
    the pinned API version. The truncation path and the refusal to return a
    silently short list ran with it.
 
-4. **Facebook tells you who a Page is and will not tell you who a person is.**
-   A comment written by a **Page** comes back with `from: { name, id }`. A
-   comment written by a **person** comes back with no `from` at all — confirmed
-   against live Graph on 2026-09-15 across three Pages and three people,
-   including a person with no role on the Page and no connection to the app.
-   None of this is documented; `from` is not listed among the Comment node's
-   fields.
+4. **Some comments come back with no author, and the credential decides which.**
+   A comment normally carries `from: { name, id }`. Some come back with no
+   `from` at all, and on 2026-09-15 the same person's same comments came back
+   anonymous through a Page token exchanged from a **Business System User** and
+   attributed through one exchanged from a **personally-granted** user token for
+   the same app. **The rule Meta applies here is not established.** None of it is
+   documented either; `from` is not listed among the Comment node's fields.
 
-   **`needs_reply` still answers the question you want**, because it only ever
-   has to recognise *the Page*, and the Page always carries its own author id.
-   A customer's comment has no author, so it is not the Page, so the thread is
-   listed as needing a reply. That is correct, and it errs towards showing you a
-   thread rather than hiding one.
+   **An earlier version of this entry named a cause, and it was wrong.** It said
+   Facebook returns author information for a comment written by a Page and
+   withholds it for one written by a person — recorded from three observations
+   of each, including a person with no role on the Page. Every one of those
+   observations was made through the same token, and that was the variable
+   nobody held still. It is corrected here rather than deleted because the same
+   mistake is easy to repeat: this is the same credential difference as entry 2,
+   and the two were found on the same day by the same method.
 
-   **What you cannot get is who.** Author names are absent for real customers,
-   so `groupBy: "author"` is close to useless on human comments, and a response
-   cannot tell you which person is waiting — only that somebody is.
+   **`needs_reply` still errs in the direction you want.** It only ever has to
+   recognise *the Page*. A comment that carries no author cannot be shown to be
+   the Page's, so the thread is listed as needing a reply — which shows you a
+   thread rather than hiding one, and may show you one that is already handled.
+
+   **What you cannot rely on is who.** Where author names are missing,
+   `groupBy: "author"` has little to work with and a response cannot tell you
+   which person is waiting — only that somebody is.
 
    **The one case to know about:** when *no* comment in a batch carries an
-   author, the Page has replied to nothing in it, and every thread is listed as
-   needing a reply with a note saying so. Prior to 0.1.9 that case reported the
-   threads as `answered`. Every response still reports `statusBasis`,
-   `"author_identity"` or `"reply_count"`; check it before trusting the detail.
+   author, nothing can identify the Page in any thread, so none can be shown as
+   answered and every one is listed as needing a reply with a note saying so.
+   Prior to 0.1.9 that case reported the threads as `answered`, which was the
+   defect; from 0.1.13 the note no longer claims the Page has replied to
+   nothing, because that does not follow. Every response reports `statusBasis`,
+   `"author_identity"` or `"reply_count"`, and an `identity` block naming the
+   credential that read it; check both before trusting the detail.
 
 5. **Your own Pages work in development mode; other people's need App Review.**
    The permissions in the table above have been exercised live against a real
