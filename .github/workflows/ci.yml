@@ -48,6 +48,22 @@ jobs:
       - run: uv run ruff check .
       - run: uv run pytest -q
 
+  go:
+    name: Go module
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: go
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go/go.sum
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test ./... -race
+
   conformance:
     name: Conformance
     runs-on: ubuntu-latest
@@ -61,6 +77,10 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: go/go.sum
 
       - name: Build the Node implementation
         working-directory: node
@@ -73,6 +93,13 @@ jobs:
       - name: Build the Python image
         run: docker build -t fbe-python:dev python/
 
+      - name: Build the Go binary
+        working-directory: go
+        run: go build -o bin/facebook-engagement-mcp ./cmd/facebook-engagement-mcp
+
+      - name: Build the Go image
+        run: docker build -t fbe-go:dev go/
+
       # Named explicitly rather than run bare. `run.mjs` skips an implementation
       # whose files are absent, which is right for a developer without every
       # toolchain and wrong here: a skipped entry in CI is a coverage hole that
@@ -82,4 +109,4 @@ jobs:
       # private sibling repository that CI cannot check out, so it skips — and
       # the run says so on its own line rather than quietly testing three.
       - name: Run the suite
-        run: node conformance/run.mjs node python python-native
+        run: node conformance/run.mjs node python python-native go go-native
