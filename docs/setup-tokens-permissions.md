@@ -233,9 +233,42 @@ The usual causes in the Explorer, in the order to check them:
 3. **Expired or invalid token.** Short-lived Explorer tokens die in about an
    hour. Generate a fresh user token and retry.
 
-Once the call succeeds, interpret the list. Business Portfolio structure, Page
-ownership, and how a Page was created all affect what enumerates. I've hit two
-distinct versions of this:
+### Empty `{"data": []}` from `/me/accounts`
+
+A successful call that returns no Pages is not error 2500 and not the
+comments empty-array trap from the top of this article. Graph accepted the
+**user** token and answered: this app has been granted access to **zero** Pages
+for that identity.
+
+Check, in order:
+
+1. **Confirm it is a user token and it carries `pages_show_list`.** In the
+   Explorer, **User or Page** must be a user token from **Get User Access
+   Token**, not a Page under **Page Access Tokens**. Then run `debug_token`
+   (Step 4). If `pages_show_list` is missing from `scopes`, remint and tick it
+   — without it you will not get a useful Page list.
+2. **Re-authorise so the Page grant is not empty.** Permissions on the token
+   and Pages the app may touch are separate. You can hold all five scopes and
+   still see `data: []` if consent never attached any Page (or the grant went
+   stale). Fix:
+
+   1. **User or Page → Uninstall the app.**
+   2. **User or Page → Get User Access Token** again.
+   3. Select the permissions you need (the four Page scopes, plus `ads_read` if
+      you want ads).
+   4. On the consent screen, choose **Opt in to current Pages only** so Facebook
+      shows the checklist, and **tick every Page you need** — including the one
+      you are testing on. Confirm.
+   5. Retry `me/accounts?fields=id,name,tasks`.
+
+3. **Only then treat it as ownership.** If the grant is fresh, `pages_show_list`
+   is present, and the list is still empty (or still missing the Page you
+   administer in the UI), the problem is Business Portfolio / role / how the
+   Page was created — not the Explorer click path. See the cases below.
+
+Once the call succeeds *with Pages in `data`*, interpret the list. Business
+Portfolio structure, Page ownership, and how a Page was created all affect what
+enumerates. I've hit two distinct versions of this:
 
 - The Page the API Couldn't See —
   Graph returned five Pages; I administer seven, and one of the missing ones was
@@ -653,6 +686,11 @@ The setup above is the resolution to a series of things that went wrong first:
   about the current user`) on `/me/accounts` means the Explorer has no usable
   **user** token — empty field, Page selected in User or Page, or expired.
   Generate a user token and retry; this is not a missing-Page problem.
+- **`/me/accounts` returning `{"data": []}`** means the user token worked but
+  the app has zero Pages on its grant. Uninstall the app, **Get User Access
+  Token** again, opt in to current Pages, and tick the Pages you need. Do not
+  confuse this with the comments empty-array (that one is using a user token
+  where a Page token is required).
 - Selecting a **use case is not granting a permission**, and a token minted
   before you added a permission does not carry it. Verify with `debug_token`.
   For ads: open **User or Page → Get User Access Token** and select **all five**
