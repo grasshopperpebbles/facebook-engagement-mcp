@@ -2,7 +2,10 @@
 
 Keep-a-Changelog format. Versions follow semver.
 
-## [0.1.15] — 2026-09-15
+## [0.1.15] — 2026-09-16
+
+Released: [v0.1.15](https://github.com/grasshopperpebbles/facebook-engagement-mcp/releases/tag/v0.1.15)
+(`.mcpb` asset: `facebook-engagement-mcp-0.1.15.mcpb`).
 
 ### Fixed
 

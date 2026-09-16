@@ -11,7 +11,7 @@ are available behind an explicit flag. Deleting is not offered at all.
 
 | | Status | How you run it |
 |---|---|---|
-| **[Node / TypeScript](./node/)** | **ready — v0.1.13** | A `.mcpb` bundle. Double-click it; Claude Desktop supplies the runtime. **[Start here](./node/README.md)** |
+| **[Node / TypeScript](./node/)** | **ready — v0.1.15** | A `.mcpb` bundle. Double-click it; Claude Desktop supplies the runtime. **[Start here](./node/README.md)** |
 | **[Python](./python/)** | **ready** — all three tools | a Python package (`pip install`). **[Details](./python/README.md)** |
 | **[Go](./go/)** | **ready** — all three tools | a Go module (`go install`). **[Details](./go/README.md)** |
 | PHP | not built yet | a PHP package |
