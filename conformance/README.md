@@ -88,6 +88,8 @@ describes and confirming the case objects.
 | `a-reply-without-a-page-id-is-refused` | remove the schema requirement **and** the body guard | ✅ |
 | `a-dry-run-publishes-nothing` | make the dry run publish | ✅ |
 | `a-dry-run-publishes-nothing` | echo the caller's text back | ✅ |
+| `an-absent-comments-edge-is-no-comments` | remove the (#100) branch, let the explainer have it | ✅ |
+| `a-post-that-truly-failed-is-still-a-gap` | widen the predicate to `error instanceof MetaApiError` | ✅ |
 
 Every one was then re-run against the **Python** implementation, breaking it the
 same ways. All caught. And again against **Go** (2026-09-15): all fourteen
@@ -96,6 +98,19 @@ container and native entries once disagreed — also applied to the containerise
 `go` entry. All caught. That is the check that makes these conformance cases
 rather than TypeScript tests: a case that discriminates in one language and not
 another is not testing the rule, it is testing an implementation.
+
+The T-55 pair (2026-09-18) was mutated in all four implementations. Mutation 1
+was free: every implementation but `node` failed the case before the fix landed,
+which is the same evidence, obtained the honest way round. Mutation 2 is the
+reason there are two cases rather than one — see below.
+
+**A second stale-build trap, in TypeScript this time.** The first attempt at
+mutation 2 inserted `return true` above the existing body. That does not
+compile — the lines beneath it become unreachable and `error` stops being
+narrowed — so `tsc` failed, `dist/` kept yesterday's build, and the suite
+reported **66/66 against code that was never built**. A green run after a
+mutation that did not compile looks exactly like a green run after a mutation
+that was caught. Check the build command's exit code, not the suite's.
 
 Mutation 10 is worth a line on its own, as a note to whoever runs this next.
 "Ignore the creative's story id" does not compile in Go if you simply delete the
@@ -124,6 +139,31 @@ alone.
 **This is the suite's own rule turning on the suite.** *A check earns its place
 by being able to disagree*, and the only way to find out whether it can is to
 make it.
+
+### The second one that did not catch its own mutation
+
+`an-absent-comments-edge-is-no-comments` was written for T-55 and **passed**
+with the predicate widened to `error instanceof MetaApiError` — every Graph
+failure on a comments edge reclassified as "this post has no comments".
+
+The case asserts what the fix should do: not partial, names the post, says no
+comments, never says "could not be read". A predicate that says yes to
+everything satisfies all four. What it cannot see is the other half of the
+rule — that a *real* failure must still be a gap — because the case's fixture
+contains no real failure to be wrong about.
+
+That is the general shape, and it is worth stating plainly because this is the
+second time it has happened here: **a case written for a fix that narrows a
+behaviour cannot, by itself, catch a fix that widens it too far.** The
+assertions all point the same direction. The answer both times was a second
+case pointing the other way — `a-post-that-truly-failed-is-still-a-gap`, whose
+fixture fails a comments edge with `(#200)` and requires the partial answer the
+first case forbids.
+
+The dangerous direction is the widening one. Reporting a permission failure as
+"no comments" is the confident zero this whole capability exists to prevent: a
+marketer told a post is quiet, when the truth is that their token cannot see
+it, stops looking.
 
 ### A case that must NOT fail on one layer alone
 

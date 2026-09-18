@@ -10,6 +10,7 @@ because the fault was the identity, not the permission.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -47,3 +48,28 @@ class MetaApiError(RuntimeError):
             user_message=error.get("error_user_msg"),
             trace_id=error.get("fbtrace_id"),
         )
+
+
+def is_absent_comments_edge(error: object) -> bool:
+    """Meta's (#100) "Unsupported get request … does not exist … or does not
+    support this operation" on a comments edge.
+
+    Live shape for ad-backed posts that have no readable comments object —
+    Graph answers with an error rather than ``{"data": []}``. Treat as "no
+    comments", not a permission failure: routing it through the explainer
+    makes a complete answer report a failure after a successful read of the
+    sibling posts (T-55).
+    """
+    if not isinstance(error, MetaApiError):
+        return False
+    if error.code == 100:
+        return True
+    message = str(error)
+    return bool(
+        re.search(r"unsupported get request", message, re.IGNORECASE)
+        and re.search(
+            r"does not exist|does not support this operation|missing permissions",
+            message,
+            re.IGNORECASE,
+        )
+    )

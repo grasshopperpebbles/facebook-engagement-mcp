@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from ..graph import MetaApiError, PagesClient
+from ..graph import MetaApiError, PagesClient, is_absent_comments_edge
 from ..graph.marketing import MarketingClient
 from ..graph.types import Comment
 from .ad_posts import resolve_ad_posts
@@ -181,7 +181,15 @@ async def run_comment_activity(
                 threads.extend(assemble_threads(p, comments, replies_by_comment_id))
             except MetaApiError as error:
                 # One failing post must not fail the whole answer — it becomes a
-                # labelled gap instead.
+                # labelled gap instead. Meta's (#100) "Unsupported get request /
+                # does not exist / does not support this operation" on the
+                # comments edge is the live shape for "this post has no readable
+                # comments" (common on ad-backed story ids), not a token failure
+                # — say that, or Claude reports an error after a successful read
+                # of sibling posts.
+                if is_absent_comments_edge(error):
+                    notes.append(f"Post {p.id} has no comments.")
+                    continue
                 partial = True
                 notes.append(f"Comments for post {p.id} could not be read: {error}")
 

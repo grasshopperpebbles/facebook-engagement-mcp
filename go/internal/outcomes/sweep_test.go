@@ -15,16 +15,32 @@ import (
 // stub serves recorded Graph responses and records every path asked for.
 type stub struct {
 	*httptest.Server
-	mu       sync.Mutex
-	paths    []string
-	routes   map[string]string
-	failing  map[string]bool
+	mu      sync.Mutex
+	paths   []string
+	routes  map[string]string
+	failing map[string]bool
+	// failWith serves an exact Graph error for one path, where `failing` only
+	// serves a generic 500. A case about how ONE error code is classified
+	// cannot be written with a stub that can only produce one error.
+	failWith map[string]stubFailure
 	fallback string
+}
+
+// stubFailure is a Graph error response verbatim: status and body as Meta sends
+// them, so the implementation's own error mapping is what gets exercised.
+type stubFailure struct {
+	status int
+	body   string
 }
 
 func newStub(t *testing.T, routes map[string]string) *stub {
 	t.Helper()
-	s := &stub{routes: routes, failing: map[string]bool{}, fallback: `{"data":[]}`}
+	s := &stub{
+		routes:   routes,
+		failing:  map[string]bool{},
+		failWith: map[string]stubFailure{},
+		fallback: `{"data":[]}`,
+	}
 	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Strip the /vNN.N prefix so routes read like Graph edges.
 		path := r.URL.Path
@@ -36,9 +52,15 @@ func newStub(t *testing.T, routes map[string]string) *stub {
 		s.paths = append(s.paths, path)
 		body, known := s.routes[path]
 		failing := s.failing[path]
+		failure, hasFailure := s.failWith[path]
 		s.mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
+		if hasFailure {
+			w.WriteHeader(failure.status)
+			_, _ = w.Write([]byte(failure.body))
+			return
+		}
 		if failing {
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write([]byte(`{"error":{"message":"upstream","code":1}}`))
@@ -355,5 +377,51 @@ func TestWithheldPostsAreCountedOnlyWhenTheyRefuse(t *testing.T) {
 	// The count is a floor and the note must say so — a text post leaves no media.
 	if !strings.Contains(found, "minimum") {
 		t.Errorf("note does not say the count is a floor: %q", found)
+	}
+}
+
+// T-55. Meta answers (#100) "Unsupported get request … does not exist … or does
+// not support this operation" on the comments edge of an ad-backed story that
+// has no readable comments object — an error where an empty list would be
+// honest. Routed through ExplainGraphError it makes the whole answer partial
+// and tells Claude a read failed, right after a sibling post read fine.
+func TestAnAbsentCommentsEdgeIsNoCommentsNotAFailure(t *testing.T) {
+	s := newStub(t, map[string]string{
+		"/me/accounts": accountsWithPage,
+		"/pg1/feed": `{"data":[
+			{"id":"pg1_p1","created_time":"2026-09-01T09:00:00+0000","is_published":true},
+			{"id":"pg1_p2","created_time":"2026-09-01T09:00:00+0000","is_published":true}
+		]}`,
+		"/pg1_p1/comments": `{"data":[{"id":"c1","message":"Do you ship to Ireland?","created_time":"2026-09-02T10:00:00+0000","comment_count":0,"from":{"id":"visitor"}}]}`,
+	})
+	s.failWith["/pg1_p2/comments"] = stubFailure{
+		status: http.StatusBadRequest,
+		body: `{"error":{"message":"Unsupported get request. Object with ID 'pg1_p2' does not exist, ` +
+			`cannot be loaded due to missing permissions, or does not support this operation",` +
+			`"type":"GraphMethodException","code":100,"error_subcode":33}}`,
+	}
+
+	got, err := RunCommentActivity(context.Background(), s.deps(t), RunOptions{
+		Page: "pg1", Filter: FilterAll,
+	})
+	if err != nil {
+		t.Fatalf("RunCommentActivity failed instead of answering: %v", err)
+	}
+	if got.Partial {
+		t.Error("partial = true; an absent comments edge is not a gap in the answer")
+	}
+	if len(got.Groups) == 0 {
+		t.Error("the sibling post's comments are missing from the answer")
+	}
+
+	notes := strings.Join(got.Notes, " ")
+	if !strings.Contains(notes, "pg1_p2") {
+		t.Errorf("no note names the post with no comments: %v", got.Notes)
+	}
+	if !strings.Contains(strings.ToLower(notes), "no comments") {
+		t.Errorf("notes do not say the post has no comments: %v", got.Notes)
+	}
+	if strings.Contains(notes, "could not be read") {
+		t.Errorf("an absent edge is reported as a read failure: %v", got.Notes)
 	}
 }

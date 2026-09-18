@@ -16,6 +16,31 @@ var permissionByOperation = map[string]string{
 	"moderate": "pages_manage_engagement",
 }
 
+// IsAbsentCommentsEdge reports Meta's (#100) "Unsupported get request … does
+// not exist … or does not support this operation" on a comments edge.
+//
+// Live shape for ad-backed posts that have no readable comments object — Graph
+// answers with an error where an empty list would be honest. Treat as "no
+// comments", not a permission failure: routed through ExplainGraphError it
+// makes a complete answer report a failure after a successful read of the
+// sibling posts (T-55).
+func IsAbsentCommentsEdge(err error) bool {
+	var apiErr *graph.MetaAPIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	if apiErr.Code != nil && *apiErr.Code == 100 {
+		return true
+	}
+	message := strings.ToLower(apiErr.Message)
+	if !strings.Contains(message, "unsupported get request") {
+		return false
+	}
+	return strings.Contains(message, "does not exist") ||
+		strings.Contains(message, "does not support this operation") ||
+		strings.Contains(message, "missing permissions")
+}
+
 // ErrorContext is what the explainer needs to give advice rather than an echo.
 type ErrorContext struct {
 	Operation string

@@ -182,7 +182,16 @@ func RunCommentActivity(ctx context.Context, deps Deps, opts RunOptions) (Commen
 			postThreads, sweepErr := sweepPost(ctx, client, post)
 			if sweepErr != nil {
 				// One failing post must not fail the whole answer — it becomes a
-				// labelled gap instead.
+				// labelled gap instead. Meta's (#100) "Unsupported get request /
+				// does not exist / does not support this operation" on the
+				// comments edge is the live shape for "this post has no readable
+				// comments" (common on ad-backed story ids), not a token failure
+				// — say that, or Claude reports an error after a successful read
+				// of sibling posts.
+				if IsAbsentCommentsEdge(sweepErr) {
+					notes = append(notes, fmt.Sprintf("Post %s has no comments.", post.ID))
+					continue
+				}
 				partial = true
 				notes = append(notes, fmt.Sprintf("Comments for post %s could not be read: %s",
 					post.ID, ExplainGraphError(sweepErr, ErrorContext{Operation: "read", PageID: pageID})))
