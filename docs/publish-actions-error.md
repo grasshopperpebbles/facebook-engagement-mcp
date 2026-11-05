@@ -253,7 +253,7 @@ the credential**:
 
 ```text
 POST /{comment-id}/comments   with the PAGE token   ->  200  {"id": "..."}
-POST /{comment-id}/comments   with the USER token   ->  403  publish_actions
+POST /{comment-id}/comments   with the USER token   ->  refused  (#200) publish_actions
 ```
 
 That second response was the message from the top of this article, verbatim, down
