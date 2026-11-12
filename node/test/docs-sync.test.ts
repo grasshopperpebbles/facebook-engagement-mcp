@@ -40,11 +40,11 @@ const contentRepo = resolve(
   "my social media posts",
   "Founder_Ecosystem_Command_Center Rewrite",
   "GrasshopperPebbles",
-  "grasshopperpebbles articles",
-  "facebook-engagement-mcp-setup",
+  "articles",
+  "application-development",
 )
 
-const available = existsSync(join(contentRepo, "article.md"))
+const available = existsSync(join(contentRepo, "89-reading-facebook-page-comments-with-the-graph-api.md"))
 
 describe("docs/ is generated, not edited", () => {
   it("has the generator it claims to have", () => {
